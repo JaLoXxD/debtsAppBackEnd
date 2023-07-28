@@ -1,34 +1,46 @@
 package com.debts.debtsappbackend.entity;
 
-import lombok.Data;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
-@Data
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
+@Builder
 @Document(collection = "user")
 public class User {
     @Id
     private String id;
-    @NotNull
-    private String userName;
-    @NotNull
+    private String username;
     private String password;
-    @NotNull
     private String firstName;
-    @NotNull
     private String lastName;
     private String secondName;
     private String secondLastName;
-    @NotNull
     private String email;
-    @NotNull
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLogin;
-    @NotNull
     private String phone;
-    @NotNull
     private String status;
+
+    public User(String username, String password, String firstName, String lastName, String secondName, String secondLastName, String email, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin, String phone, String status) {
+        this.username = username;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.secondName = secondName;
+        this.secondLastName = secondLastName;
+        this.email = email;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.lastLogin = lastLogin;
+        this.phone = phone;
+        this.status = status;
+    }
 }

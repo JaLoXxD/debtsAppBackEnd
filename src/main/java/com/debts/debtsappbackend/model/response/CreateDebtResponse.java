@@ -1,4 +1,4 @@
-package com.debts.debtsappbackend.model;
+package com.debts.debtsappbackend.model.response;
 
 import com.debts.debtsappbackend.entity.Debt;
 import lombok.AllArgsConstructor;
@@ -8,10 +8,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class DebtCreatedModel extends GenericResponseModel {
+public class CreateDebtResponse extends GenericResponse {
     private Debt debt;
 
-    public DebtCreatedModel(Boolean success, String message, String error, Debt debt) {
+    public CreateDebtResponse(Boolean success, String message, String error, Debt debt) {
         super(success, message, error);
         this.debt = debt;
     }

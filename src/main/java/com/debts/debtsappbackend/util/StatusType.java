@@ -1,11 +1,13 @@
 package com.debts.debtsappbackend.util;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.List;
 
 @Getter
+@AllArgsConstructor
 public enum StatusType {
     ACTIVE("A", "Active"),
     INACTIVE("I", "Inactive"),
@@ -13,12 +15,6 @@ public enum StatusType {
 
     private final String code;
     private final String description;
-
-
-    StatusType(String code, String description) {
-        this.code = code;
-        this.description = description;
-    }
 
     public static String getDescFromCode(String code) {
         List<StatusType> itemList = Arrays.asList(StatusType.values());

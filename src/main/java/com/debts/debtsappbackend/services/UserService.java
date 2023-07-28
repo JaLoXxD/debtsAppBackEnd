@@ -1,14 +1,23 @@
 package com.debts.debtsappbackend.services;
 
 import com.debts.debtsappbackend.entity.User;
+import com.debts.debtsappbackend.helper.AuthHelper;
+import com.debts.debtsappbackend.helper.UserHelper;
+import com.debts.debtsappbackend.model.request.CreateUserRequest;
+import com.debts.debtsappbackend.model.response.JwtResponse;
+import com.debts.debtsappbackend.model.request.LoginRequest;
 import com.debts.debtsappbackend.repository.UserRepository;
+import com.debts.debtsappbackend.security.JwtUtil;
 import com.debts.debtsappbackend.util.StatusType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -18,30 +27,45 @@ import java.util.regex.Pattern;
 @Slf4j
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
     private final TranslateService translateService;
+    private final UserRepository userRepository;
+    private final UserHelper userHelper;
+    private final AuthHelper authHelper;
 
     @Autowired
-    public UserService(UserRepository userRepository, TranslateService translateService){
+    public UserService(UserRepository userRepository, TranslateService translateService, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtUtil jwtUtil, UserHelper userHelper, AuthHelper authHelper) {
         this.userRepository = userRepository;
         this.translateService = translateService;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+        this.userHelper = userHelper;
+        this.authHelper = authHelper;
     }
 
-    public User registerUser(User user){
-        return userRepository.save(_setUserDefaultFields(user));
+    public User registerUser(CreateUserRequest request){
+        return userRepository.save(_setUserDefaultFields(request));
     }
 
-    private User _setUserDefaultFields(User user){
+    public JwtResponse login(LoginRequest request){
+        log.debug("ENTER LOGIN");
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String token = jwtUtil.generateToken(authentication);
+        return authHelper.generateLoginResponse(token);
+    }
+
+    private User _setUserDefaultFields(CreateUserRequest userRequest){
+        User user = userHelper.mapUserFromRequest(userRequest);
         user.setCreatedAt(LocalDateTime.now());
-        log.info("USER CREATED AT: {}", user.getCreatedAt());
         user.setStatus(StatusType.ACTIVE.getCode());
-        user.setPassword(_encryptPassword(user.getPassword()));
+        String hashedPassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(hashedPassword);
+        log.info("USER THAT WILL BE CREATED: {}", user);
         return user;
-    }
-
-    private String _encryptPassword(String password){
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        return passwordEncoder.encode(password);
     }
 
     private boolean _isValidEmail(String email) {
@@ -51,41 +75,32 @@ public class UserService {
         return matcher.matches();
     }
 
-    public String isValidUser(User user, Locale locale) {
-        User finalUser = _setUserDefaultFields(user);
-        if(finalUser.getUserName() == null || finalUser.getUserName().isEmpty()) {
+    public String isValidUser(CreateUserRequest user, Locale locale) {
+        if(user.getUsername() == null || user.getUsername().isEmpty()) {
             String fieldName = translateService.getMessage("user.username", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getPassword() == null || finalUser.getPassword().isEmpty()) {
+        if(user.getPassword() == null || user.getPassword().isEmpty()) {
             String fieldName = translateService.getMessage("user.password", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getFirstName() == null || finalUser.getFirstName().isEmpty()) {
+        if(user.getFirstName() == null || user.getFirstName().isEmpty()) {
             String fieldName = translateService.getMessage("user.firstName", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getLastName() == null || finalUser.getLastName().isEmpty()) {
+        if(user.getLastName() == null || user.getLastName().isEmpty()) {
             String fieldName = translateService.getMessage("user.lastName", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getEmail() == null || finalUser.getEmail().isEmpty()) {
+        if(user.getEmail() == null || user.getEmail().isEmpty()) {
             String fieldName = translateService.getMessage("user.email", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getPhone() == null || finalUser.getPhone().isEmpty()) {
+        if(user.getPhone() == null || user.getPhone().isEmpty()) {
             String fieldName = translateService.getMessage("user.phone", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
+            return translateService.getMessage("general.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
         }
-        if(finalUser.getCreatedAt() == null) {
-            String fieldName = translateService.getMessage("user.createdAt", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
-        }
-        if(finalUser.getStatus() == null || finalUser.getStatus().isEmpty()) {
-            String fieldName = translateService.getMessage("user.status", null, locale);
-            return translateService.getMessage("user.error.emptyField", new Object[] { "'" + fieldName + "'" }, locale);
-        }
-        if(!_isValidEmail(finalUser.getEmail())) {
+        if(!_isValidEmail(user.getEmail())) {
             return translateService.getMessage("user.error.invalidMail", locale);
         }
         return null;

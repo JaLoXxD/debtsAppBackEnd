@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -13,5 +15,5 @@ import lombok.experimental.SuperBuilder;
 public class GenericResponse {
     private Boolean success;
     private String message;
-    private String error;
+    private List<String> errors;
 }

@@ -23,30 +23,31 @@ import java.util.stream.Collectors;
 @Slf4j
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private static String secret;
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 hours in milliseconds
+    private final String SECRET_KEY;
+    private final long EXPIRATION_TIME ; // 10 hours in milliseconds
+
+    public JwtUtil(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration}") long expiration) {
+        this.SECRET_KEY = secret;
+        this.EXPIRATION_TIME = expiration;
+    }
 
     public String generateToken(Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        log.info("SECRET {}", secret);
         return Jwts.builder()
-                .signWith(getKey("debtsApp512debtsApp512debtsApp512debtsApp512debtsApp512debtsApp512debtsApp512debtsApp512debtsApp512"))
+                .signWith(getKey(SECRET_KEY))
                 .setSubject(userPrincipal.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(new Date().getTime() + EXPIRATION_TIME))
-                .claim("roles", getRoles(userPrincipal))
-                .claim("cara", "feísima")
                 .compact();
     }
 
     public String getUsernameFromToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(getKey(secret)).build().parseClaimsJws(token).getBody().getSubject();
+        return Jwts.parserBuilder().setSigningKey(getKey(SECRET_KEY)).build().parseClaimsJws(token.replace("Bearer ", "")).getBody().getSubject();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getKey(secret)).build().parseClaimsJws(token).getBody();
+            Jwts.parserBuilder().setSigningKey(getKey(SECRET_KEY)).build().parseClaimsJws(token).getBody();
             return true;
         } catch (ExpiredJwtException e) {
             log.error("expired token");
@@ -62,11 +63,6 @@ public class JwtUtil {
             log.error("fail token");
         }
         return false;
-    }
-
-    private List<String> getRoles(UserPrincipal principal) {
-        return principal.getAuthorities()
-                .stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
     }
 
     private Key getKey(String secret){

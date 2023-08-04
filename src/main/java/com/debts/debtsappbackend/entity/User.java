@@ -4,6 +4,7 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -28,6 +29,8 @@ public class User {
     private LocalDateTime lastLogin;
     private String phone;
     private String status;
+    private BigDecimal salary;
+    private Boolean resetPassword;
 
     public User(String username, String password, String firstName, String lastName, String secondName, String secondLastName, String email, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime lastLogin, String phone, String status) {
         this.username = username;

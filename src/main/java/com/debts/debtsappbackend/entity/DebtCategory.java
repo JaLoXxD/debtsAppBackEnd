@@ -1,6 +1,9 @@
 package com.debts.debtsappbackend.entity;
 
+import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -9,6 +12,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import javax.validation.constraints.NotNull;
 
 @Data
+@Getter
+@Setter
+@Builder
 @Document(collection = "debtCategory")
 public class DebtCategory {
     @Id
@@ -19,7 +25,7 @@ public class DebtCategory {
     private String description;
     @NotNull
     private Boolean global;
-    /*REFERENCE TO DEBT DOCUMENT*/
+    /*REFERENCE TO USER DOCUMENT*/
     @DBRef
-    private Debt debt;
+    private User user;
 }

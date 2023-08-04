@@ -16,10 +16,10 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DebtDto {
     private String id;
-    private String category;
     private String name;
     private String description;
-    private String priority;
+    private DebtCategoryDto category;
+    private DebtPriorityDto priority;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String collector;

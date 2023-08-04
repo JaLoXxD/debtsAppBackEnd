@@ -16,15 +16,19 @@ import java.time.LocalDateTime;
 public class Debt {
     @Id
     private String id;
-    private String category;
     private String name;
     private String description;
-    private String priority;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String collector;
     private BigDecimal amount;
     private BigDecimal termInMonths;
+    /* REFERENCE TO DEBT CATEGORY DOCUMENT */
+    @DBRef
+    private DebtCategory category;
+    /* REFERENCE TO DEBT PRIORITY DOCUMENT */
+    @DBRef
+    private DebtPriority priority;
     /*REFERENCE TO USER DOCUMENT*/
     @DBRef
     private User user;

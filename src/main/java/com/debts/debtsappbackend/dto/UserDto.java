@@ -1,20 +1,17 @@
 package com.debts.debtsappbackend.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Builder
 public class UserDto {
     private String id;
-    private String userName;
+    private String username;
     private String firstName;
     private String lastName;
     private String secondName;
@@ -28,4 +25,5 @@ public class UserDto {
     private LocalDateTime lastLogin;
     private String phone;
     private String status;
+    private BigDecimal salary;
 }

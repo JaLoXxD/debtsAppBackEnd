@@ -38,7 +38,9 @@ public class DebtController {
             if(bindingResult.hasErrors()){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.createDebt(createDebtRequest, token, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(debtService.createDebt(createDebtRequest, token, new ArrayList<>()));
+            DebtResponse debtResponse = debtService.createDebt(createDebtRequest, token, new ArrayList<>());
+            HttpStatus status = debtResponse.getErrors() == null ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(debtResponse);
 
         } catch(Exception e) {
             log.error("ERROR {}", e.getMessage());

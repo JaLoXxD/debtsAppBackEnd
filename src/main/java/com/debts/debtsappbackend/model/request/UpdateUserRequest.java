@@ -1,0 +1,28 @@
+package com.debts.debtsappbackend.model.request;
+
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
+
+@Getter
+@Setter
+@Builder
+public class UpdateUserRequest {
+    @NotNull
+    private String firstName;
+    @NotNull
+    private String lastName;
+    private String secondName;
+    private String secondLastName;
+    @NotNull
+    @Email
+    private String email;
+    @NotNull
+    private String phone;
+    @NotNull
+    private BigDecimal salary;
+}

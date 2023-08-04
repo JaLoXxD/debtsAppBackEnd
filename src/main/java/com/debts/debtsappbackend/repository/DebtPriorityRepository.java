@@ -1,6 +1,7 @@
 package com.debts.debtsappbackend.repository;
 
 import com.debts.debtsappbackend.entity.DebtPriority;
+import com.debts.debtsappbackend.entity.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ public interface DebtPriorityRepository extends MongoRepository<DebtPriority, St
     @Query("{ '_id' : ?0 }")
     void updateDebtPriority(String id, String name, String description, Boolean global, String color);
     DebtPriority findByNameAndGlobal(String name, Boolean global);
+    DebtPriority findByNameAndUser(String name, User user);
     void deleteByGlobal(Boolean global);
     List<DebtPriority> findByUserId(String userId);
     List<DebtPriority> findByGlobal(Boolean global);

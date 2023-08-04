@@ -16,6 +16,8 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CreateDebtPriorityResponse extends GenericResponse {
-    DebtPriorityDto debtPriority;
+public class GetAllDebtsPrioritiesResponse extends GenericResponse {
+    List<DebtPriorityDto> allDebtPriorities;
+    List<DebtPriorityDto> globalDebtPriorities;
+    List<DebtPriorityDto> userDebtPriorities;
 }

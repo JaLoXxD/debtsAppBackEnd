@@ -1,6 +1,6 @@
 package com.debts.debtsappbackend.model.response;
 
-import com.debts.debtsappbackend.dto.DebtPriorityDto;
+import com.debts.debtsappbackend.dto.DebtCategoryDto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -16,6 +16,8 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CreateDebtPriorityResponse extends GenericResponse {
-    DebtPriorityDto debtPriority;
+public class GetAllDebtsCategoriesResponse extends GenericResponse{
+    List<DebtCategoryDto> allDebtCategories;
+    List<DebtCategoryDto> globalDebtCategories;
+    List<DebtCategoryDto> userDebtCategories;
 }

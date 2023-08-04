@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Component
 @Slf4j
-public class DebtHelper {
+public class DebtHelper extends GenericHelper{
     private final TranslateService translateService;
     private final UserHelper userHelper;
 
@@ -57,6 +57,7 @@ public class DebtHelper {
 
     public AllDebtsResponse buildAllDebtsResponse(List<Debt> debts, List<String> errors) {
         try{
+            log.error("ERRORS: {}", errors);
             if(!errors.isEmpty()){
                 return AllDebtsResponse.builder()
                         .success(false)
@@ -73,6 +74,29 @@ public class DebtHelper {
             return AllDebtsResponse.builder()
                     .success(false)
                     .message(translateService.getMessage("debt.get.all.error"))
+                    .errors(errors)
+                    .build();
+        }
+    }
+
+    public DebtPaymentResponse buildDebtPaymentResponse(DebtPayment debtPayment, List<String> errors){
+        try{
+            if(!errors.isEmpty()){
+                return DebtPaymentResponse.builder()
+                        .success(false)
+                        .message(translateService.getMessage("debt.payment.update.error"))
+                        .errors(errors)
+                        .build();
+            }
+            return DebtPaymentResponse.builder()
+                    .success(true)
+                    .message(translateService.getMessage("debt.payment.update.success"))
+                    .debtPayment(convertDebtPaymentToDto(debtPayment))
+                    .build();
+        } catch(Exception e) {
+            return DebtPaymentResponse.builder()
+                    .success(false)
+                    .message(translateService.getMessage("debt.payment.update.error"))
                     .errors(errors)
                     .build();
         }
@@ -278,10 +302,10 @@ public class DebtHelper {
 
         return  DebtDto.builder()
                 .id(debt.getId())
-                .category(debt.getCategory())
+                .priority(_convertDebtPriorityToDto(debt.getPriority(), false))
+                .category(_convertDebtCategoryToDto(debt.getCategory(), false))
                 .name(debt.getName())
                 .description(debt.getDescription())
-                .priority(debt.getPriority())
                 .startDate(debt.getStartDate())
                 .endDate(debt.getEndDate())
                 .collector(debt.getCollector())
@@ -306,12 +330,12 @@ public class DebtHelper {
                 .build();
     }
 
-    public Debt mapDebtFromRequest(CreateDebtRequest request, User user){
+    public Debt mapDebtFromRequest(CreateDebtRequest request, User user, DebtCategory debtCategory, DebtPriority debtPriority){
         return Debt.builder()
-                .category(request.getCategory())
+                .category(debtCategory)
                 .name(request.getName())
                 .description(request.getDescription())
-                .priority(request.getPriority())
+                .priority(debtPriority)
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .collector(request.getCollector())

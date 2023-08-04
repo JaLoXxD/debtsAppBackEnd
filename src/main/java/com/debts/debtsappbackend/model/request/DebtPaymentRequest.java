@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 @ToString
-public class CreateDebtPaymentRequest {
+public class DebtPaymentRequest {
     @NotNull
     private String name;
     private String description;

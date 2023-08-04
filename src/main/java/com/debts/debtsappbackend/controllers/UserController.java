@@ -1,67 +1,73 @@
 package com.debts.debtsappbackend.controllers;
 
-import com.debts.debtsappbackend.entity.User;
-import com.debts.debtsappbackend.helper.UserHelper;
+import com.debts.debtsappbackend.model.request.UpdatePasswordRequest;
 import com.debts.debtsappbackend.model.request.CreateUserRequest;
-import com.debts.debtsappbackend.model.response.CreateUserResponse;
-import com.debts.debtsappbackend.services.TranslateService;
+import com.debts.debtsappbackend.model.request.UpdateUserRequest;
+import com.debts.debtsappbackend.model.response.GenericResponse;
+import com.debts.debtsappbackend.model.response.UserResponse;
 import com.debts.debtsappbackend.services.UserService;
-import com.debts.debtsappbackend.validators.UserValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.debts.debtsappbackend.services.ValidatorService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.LocaleResolver;
+import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/public/v1/user")
+@RequestMapping("/api/v1/user")
+@Slf4j
 public class UserController {
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-
-    private final UserHelper userHelper;
     private final UserService userService;
-    private final TranslateService translateService;
-    private final LocaleResolver localeResolver;
-    private final UserValidator userValidator;
+    private final ValidatorService validatorService;
 
     @Autowired
-    public UserController(UserHelper userHelper, UserService userService, TranslateService translateService, LocaleResolver localeResolver, UserValidator userValidator) {
-        this.userHelper = userHelper;
+    public UserController(UserService userService, ValidatorService validatorService) {
         this.userService = userService;
-        this.translateService = translateService;
-        this.localeResolver = localeResolver;
-        this.userValidator = userValidator;
+        this.validatorService = validatorService;
     }
 
+    @GetMapping
+    public ResponseEntity<UserResponse> getUserData(@RequestHeader("Authorization") String token){
+        try{
+            log.info("ENTER REST GET USER DATA");
+            return ResponseEntity.status(HttpStatus.OK).body(userService.getUserData(token));
+        } catch (Exception e){
+            log.error("ERROR:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.getUserData(null));
+        }
+    }
 
-    @PostMapping
-    public ResponseEntity<CreateUserResponse> registerUser(@RequestBody CreateUserRequest user, HttpServletRequest request, BindingResult bindingResult) {
-        Locale locale = localeResolver.resolveLocale(request);
-        try {
-            logger.info("ENTER USER REGISTER REST WITH LOCALE RESOLVER: {}", locale);
-            userValidator.validate(user, bindingResult);
+    @PutMapping("/update-password")
+    public ResponseEntity<GenericResponse> updatePassword(@RequestBody UpdatePasswordRequest updatePasswordRequest, @RequestHeader("Authorization") String token, BindingResult bindingResult){
+        try{
+            log.info("ENTER REST UPDATE PASSWORD");
+            validatorService.validate("user", updatePasswordRequest, bindingResult);
             if(bindingResult.hasErrors()){
-                logger.error("ERROR: {}", bindingResult.getAllErrors());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userHelper.createUserResponse(new User(), translateService.getMessage("user.validation.error", locale), locale));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.updatePassword(null, token, validatorService.getErrors(bindingResult)));
             }
-            String errorMsg = userService.isValidUser(user, locale);
-            if (errorMsg != null) {
-                logger.error("{} {}", translateService.getMessage(errorMsg, locale), user.getEmail());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userHelper.createUserResponse(new User(), errorMsg, locale));
+            return ResponseEntity.status(HttpStatus.OK).body(userService.updatePassword(updatePasswordRequest, token, new ArrayList<>()));
+        } catch (Exception e){
+            log.error("ERROR:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.updatePassword(null, token, List.of(e.getMessage())));
+        }
+    }
+
+    @PutMapping("/update-user")
+    public ResponseEntity<GenericResponse> updateUser(@RequestBody UpdateUserRequest updateUserRequest, @RequestHeader("Authorization") String token, BindingResult bindingResult){
+        try{
+            log.info("ENTER REST UPDATE USER");
+            validatorService.validate("user", updateUserRequest, bindingResult);
+            if(bindingResult.hasErrors()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.updateUser(null, token, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(userHelper.createUserResponse(userService.registerUser(user), null, locale));
-        } catch (Exception e) {
-            logger.error("ERROR:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userHelper.createUserResponse(new User(), e.getMessage(), locale));
+            return ResponseEntity.status(HttpStatus.OK).body(userService.updateUser(updateUserRequest, token, new ArrayList<>()));
+        } catch (Exception e){
+            log.error("ERROR:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.updateUser(null, token, List.of(e.getMessage())));
         }
     }
 }

@@ -1,88 +1,131 @@
 package com.debts.debtsappbackend.controllers;
 
-import com.debts.debtsappbackend.entity.DebtPriority;
-import com.debts.debtsappbackend.helper.DebtHelper;
-import com.debts.debtsappbackend.model.response.CreateDebtResponse;
-import com.debts.debtsappbackend.entity.Debt;
-import com.debts.debtsappbackend.model.response.CreateDebtPriorityResponse;
-import com.debts.debtsappbackend.model.response.CreateDefaultDebPrioritiesResponse;
-import com.debts.debtsappbackend.model.response.GetAllDebsPrioritiesResponse;
+import com.debts.debtsappbackend.model.request.CreateDebtCategoryRequest;
+import com.debts.debtsappbackend.model.request.CreateDebtPriorityRequest;
+import com.debts.debtsappbackend.model.request.CreateDebtRequest;
+import com.debts.debtsappbackend.model.response.*;
 import com.debts.debtsappbackend.services.DebtService;
-import com.debts.debtsappbackend.util.DebtPriorityType;
+import com.debts.debtsappbackend.services.ValidatorService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.LocaleResolver;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/public/v1/debt")
+@RequestMapping("/api/v1/debt")
 @Slf4j
 public class DebtController {
-    private final DebtHelper debtHelper;
     private final DebtService debtService;
-    private final LocaleResolver localeResolver;
+    private final ValidatorService validatorService;
 
 
     @Autowired
-    public DebtController(DebtHelper debtHelper, DebtService debtService, LocaleResolver localeResolver){
-        this.debtHelper = debtHelper;
+    public DebtController(DebtService debtService, ValidatorService validatorService){
         this.debtService = debtService;
-        this.localeResolver = localeResolver;
+        this.validatorService = validatorService;
     }
 
     @PostMapping
-    public ResponseEntity<CreateDebtResponse> createDebt(@RequestBody Debt debt) {
-        System.out.println("ENTER TO REST CREATE DEBT");
-        return ResponseEntity.status(HttpStatus.OK).body(debtHelper.createDebtResponse(debtService.createDebt(debt)));
-    }
-
-    @PostMapping("/priority")
-    public ResponseEntity<CreateDebtPriorityResponse> createDebtPriority(@RequestBody DebtPriority debtPriority, HttpServletRequest request) {
-        log.info("ENTER TO REST CREATE DEBT PRIORITY");
-        Locale locale = localeResolver.resolveLocale(request);
+    public ResponseEntity<DebtResponse> createDebt(@RequestBody CreateDebtRequest createDebtRequest, BindingResult bindingResult, @RequestHeader("Authorization") String token) {
         try{
-            String errorMsg = debtService.isValidDebtPriority(debtPriority, locale);
-            if(errorMsg != null)
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtHelper.createDebtPriorityResponse(new DebtPriority(), errorMsg, locale));
-            return ResponseEntity.status(HttpStatus.OK).body(debtHelper.createDebtPriorityResponse(debtService.createDebtPriority(debtPriority), null, locale));
-        } catch (Exception e) {
-            log.error("ERROR:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtHelper.createDebtPriorityResponse(new DebtPriority(), e.getMessage(), locale));
+            log.info("ENTER TO REST CREATE DEBT");
+            validatorService.validate("debt", createDebtRequest, bindingResult);
+            if(bindingResult.hasErrors()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.createDebt(createDebtRequest, token, validatorService.getErrors(bindingResult)));
+            }
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.createDebt(createDebtRequest, token, new ArrayList<>()));
+
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.createDebt(createDebtRequest, token, List.of(e.getMessage())));
         }
     }
 
-    @PostMapping("/defaultPriorities")
-    public ResponseEntity<CreateDefaultDebPrioritiesResponse> createDefaultDebtPriorities(HttpServletRequest request) {
-        log.info("ENTER TO REST CREATE DEFAULT DEBT PRIORITIES");
-        Locale locale = localeResolver.resolveLocale(request);
+    @GetMapping("/all")
+    public ResponseEntity<AllDebtsResponse> getAllDebts(@RequestHeader("Authorization") String token) {
         try{
-            debtService.deleteDebtPriorityByGlobal(true);
-            List<DebtPriority> debtPriorities = Arrays.stream(DebtPriorityType.values()).map(debtPriorityType -> debtHelper.convertDebtPriorityTypeToDebtPriority(debtPriorityType, locale)).collect(Collectors.toList());
-            return ResponseEntity.status(HttpStatus.OK).body(debtHelper.createDefaultDebtPrioritiesResponse(debtService.createDefaultDebtPriorities(debtPriorities), null, locale));
+            log.info("ENTER TO REST GET ALL DEBTS");
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.getAllDebts(token, new ArrayList<>()));
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getAllDebts(token, List.of(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/{debtId}")
+    public ResponseEntity<DebtResponse> getDebt(@PathVariable("debtId") String debtId, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST GET DEBT");
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.getDebtInfo(debtId, token, new ArrayList<>()));
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getDebtInfo(debtId, token, new ArrayList<>()));
+        }
+    }
+    @PostMapping("/category")
+    public ResponseEntity<CreateDebtCategoryResponse> createDebtCategory(@RequestBody CreateDebtCategoryRequest request, BindingResult bindingResult, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST CREATE DEBT CATEGORY");
+            validatorService.validate("debt", request, bindingResult);
+            if(bindingResult.hasErrors())
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.createDebtCategory(request, token, validatorService.getErrors(bindingResult)));
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.createDebtCategory(request, token, new ArrayList<>()));
         } catch (Exception e) {
             log.error("ERROR:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtHelper.createDefaultDebtPrioritiesResponse(null, e.getMessage(), locale));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.createDebtCategory(request, token, List.of(e.getMessage())));
+        }
+    }
+
+    @PostMapping("/priority")
+    public ResponseEntity<CreateDebtPriorityResponse> createDebtPriority(@RequestBody CreateDebtPriorityRequest request, BindingResult bindingResult, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST CREATE DEBT PRIORITY");
+            validatorService.validate("debt", request, bindingResult);
+            if(bindingResult.hasErrors())
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.createDebtPriority(request, token, validatorService.getErrors(bindingResult)));
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.createDebtPriority(request, token, new ArrayList<>()));
+        } catch (Exception e) {
+            log.error("ERROR:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.createDebtPriority(request, token, List.of(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/category")
+    public ResponseEntity<GetAllDebtsCategoriesResponse> getCategories(@RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST GET CATEGORY TYPES");
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.getAllDebtCategories(token, new ArrayList<>()));
+        } catch (Exception e) {
+            log.error("ERROR:", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getAllDebtCategories(token, List.of(e.getMessage())));
         }
     }
 
     @GetMapping("/priority")
-    public ResponseEntity<GetAllDebsPrioritiesResponse> getPriorityTypes(HttpServletRequest request) {
-        log.info("ENTER TO REST GET PRIORITY TYPES");
-        Locale locale = localeResolver.resolveLocale(request);
+    public ResponseEntity<GetAllDebtsPrioritiesResponse> getPriorities(@RequestHeader("Authorization") String token) {
         try{
-            //TODO: SET USER ID
-            return ResponseEntity.status(HttpStatus.OK).body(debtHelper.createGetAllDebtsPrioritiesModel(debtService.findByUserId(""), debtService.findByGlobal(true), null, locale));
+            log.info("ENTER TO REST GET PRIORITY TYPES");
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.getAllDebtPriorities(token, new ArrayList<>()));
         } catch (Exception e) {
             log.error("ERROR:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtHelper.createGetAllDebtsPrioritiesModel(null, null,  e.getMessage(), locale));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getAllDebtPriorities(token, List.of(e.getMessage())));
         }
+    }
+
+    @PostMapping("/default-priorities")
+    public ResponseEntity<DefaultDebtPrioritiesResponse> createDefaultDebtPriorities() {
+        log.info("ENTER TO REST CREATE DEFAULT DEBT PRIORITIES");
+        return ResponseEntity.status(HttpStatus.OK).body(debtService.createDefaultDebtPriorities());
+    }
+
+    @PostMapping("/default-categories")
+    public  ResponseEntity<DefaultDebtCategoriesResponse> createDefaultDebtCategories() {
+        log.info("ENTER TO REST CREATE DEFAULT DEBT CATEGORIES");
+        return ResponseEntity.status(HttpStatus.OK).body(debtService.createDefaultDebtCategories());
     }
 }

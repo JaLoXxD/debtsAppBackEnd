@@ -17,5 +17,6 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DebtPaymentResponse extends GenericResponse {
-    private List<DebtPaymentDto> debtPayment;
+    private List<DebtPaymentDto> debtPayments;
+    private DebtPaymentDto debtPayment;
 }

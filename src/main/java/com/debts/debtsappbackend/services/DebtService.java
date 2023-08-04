@@ -5,9 +5,12 @@ import com.debts.debtsappbackend.helper.DebtHelper;
 import com.debts.debtsappbackend.model.request.CreateDebtCategoryRequest;
 import com.debts.debtsappbackend.model.request.CreateDebtPriorityRequest;
 import com.debts.debtsappbackend.model.request.CreateDebtRequest;
+import com.debts.debtsappbackend.model.request.DebtPaymentRequest;
 import com.debts.debtsappbackend.model.response.*;
-import com.debts.debtsappbackend.repository.*;
-import com.debts.debtsappbackend.security.JwtUtil;
+import com.debts.debtsappbackend.repository.DebtCategoryRepository;
+import com.debts.debtsappbackend.repository.DebtPaymentRepository;
+import com.debts.debtsappbackend.repository.DebtPriorityRepository;
+import com.debts.debtsappbackend.repository.DebtRepository;
 import com.debts.debtsappbackend.util.DebtCategoryType;
 import com.debts.debtsappbackend.util.DebtPriorityType;
 import lombok.extern.slf4j.Slf4j;
@@ -27,23 +30,19 @@ import java.util.stream.Collectors;
 public class DebtService {
     private final DebtRepository debtRepository;
     private final DebtPaymentRepository debtPaymentRepository;
-    private final UserRepository userRepository;
     private final DebtPriorityRepository debtPriorityRepository;
     private final DebtCategoryRepository debtCategoryRepository;
     private final TranslateService translateService;
-    private final JwtUtil jwtUtil;
     private final DebtHelper debtHelper;
     private final UserService userService;
 
     @Autowired
-    public DebtService(DebtRepository debtRepository, DebtPaymentRepository debtPaymentRepository, UserRepository userRepository, DebtPriorityRepository debtPriorityRepository, DebtCategoryRepository debtCategoryRepository, TranslateService translateService, JwtUtil jwtUtil, DebtHelper debtHelper, UserService userService) {
+    public DebtService(DebtRepository debtRepository, DebtPaymentRepository debtPaymentRepository, DebtPriorityRepository debtPriorityRepository, DebtCategoryRepository debtCategoryRepository, TranslateService translateService, DebtHelper debtHelper, UserService userService) {
         this.debtRepository = debtRepository;
         this.debtPaymentRepository = debtPaymentRepository;
         this.debtPriorityRepository = debtPriorityRepository;
         this.debtCategoryRepository = debtCategoryRepository;
         this.translateService = translateService;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
         this.debtHelper = debtHelper;
         this.userService = userService;
     }
@@ -51,16 +50,18 @@ public class DebtService {
     public DebtResponse createDebt(CreateDebtRequest request, String token, List<String> errors) {
         try{
             User user = userService.checkIfUserExists(token, errors);
+            DebtCategory debtCategory = null;
+            DebtPriority debtPriority = null;
+            if(user != null){
+                debtCategory = _findCategoryByIdAnsUserId(request.getCategory(), user.getId(), errors);
+                debtPriority = _findPriorityByIdAndUserId(request.getPriority(), user.getId(), errors);
+            }
             if(!errors.isEmpty()){
                 return debtHelper.buildDebtResponse(null, null, errors);
             }
-            Debt debt = debtHelper.mapDebtFromRequest(request, user);
+            Debt debt = debtHelper.mapDebtFromRequest(request, user, debtCategory, debtPriority);
             Debt newDebt = debtRepository.save(debt);
-            BigDecimal monthlyAmount = newDebt.getAmount().divide(newDebt.getTermInMonths(), 2, RoundingMode.HALF_UP);
-            for(int i = 0; i < request.getTermInMonths().intValue(); i++){
-                String name = request.getName() + " - Payment " + (i + 1);
-                createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, newDebt);
-            }
+            _createDebtPayments(request, newDebt);
             return debtHelper.buildDebtResponse(newDebt, null, errors);
         } catch(Exception e) {
             log.error("ERROR: " + e);
@@ -72,6 +73,31 @@ public class DebtService {
 
     public void createDebtPayment(String name, LocalDateTime paymentDate, BigDecimal amount, Debt debt) {
         debtPaymentRepository.save(debtHelper.mapGenericDebtPayment(name, paymentDate, amount, debt));
+    }
+
+    private void _createDebtPayments(CreateDebtRequest request, Debt newDebt) {
+        BigDecimal monthlyAmount = newDebt.getAmount().divide(newDebt.getTermInMonths(), 2, RoundingMode.HALF_UP);
+        for(int i = 0; i < request.getTermInMonths().intValue(); i++){
+            String name = request.getName() + " - Payment " + (i + 1);
+            createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, newDebt);
+        }
+    }
+
+    public GenericResponse updateDebtPayment(DebtPaymentRequest request, String debtPaymentId, String token, List<String> errors) {
+        try{
+            userService.checkIfUserExists(token, errors);
+            _checkIfDebtPaymentExists(debtPaymentId, errors);
+            if(!errors.isEmpty()){
+                return debtHelper.buildGenericResponse("debt.payment.update.error", errors);
+            }
+            debtPaymentRepository.updateById(debtPaymentId, request.getName(), request.getDescription(), request.getPaymentDate(), request.getMaxPaymentDate(), request.getAmount(), request.getBalanceAfterPay(), request.getBalanceBeforePay(), request.getImage(), request.getPayed());
+            return debtHelper.buildGenericResponse("debt.payment.update.success", errors);
+        } catch(Exception e) {
+            log.error("ERROR: ", e);
+            if(e.getMessage() != null)
+                errors.add(e.getMessage());
+            return debtHelper.buildGenericResponse("debt.payment.update.error", errors);
+        }
     }
 
     public AllDebtsResponse getAllDebts(String token, List<String> errors){
@@ -93,7 +119,7 @@ public class DebtService {
     public DebtResponse getDebtInfo(String debtId, String token, List<String> errors) {
         try{
             userService.checkIfUserExists(token, errors);
-            Debt debt = checkIfDebtExists(debtId, errors);
+            Debt debt = _checkIfDebtExists(debtId, errors);
             if(!errors.isEmpty()){
                 return debtHelper.buildDebtResponse(null, null, errors);
             }
@@ -110,7 +136,7 @@ public class DebtService {
     public CreateDebtPriorityResponse createDebtPriority(CreateDebtPriorityRequest request, String token, List<String> errors) {
         try{
             User user = userService.checkIfUserExists(token, errors);
-            isValidDebtPriority(request, user, errors);
+            _isValidDebtPriority(request, user, errors);
             if(!errors.isEmpty()){
                 return debtHelper.buildCreateDebtPriorityResponse(null, errors);
             }
@@ -127,7 +153,7 @@ public class DebtService {
     public CreateDebtCategoryResponse createDebtCategory(CreateDebtCategoryRequest request, String token, List<String> errors) {
         try{
             User user = userService.checkIfUserExists(token, errors);
-            isValidDebtCategory(request, user, errors);
+            _isValidDebtCategory(request, user, errors);
             if(!errors.isEmpty()){
                 return debtHelper.buildCreateDebtCategoryResponse(null, errors);
             }
@@ -206,7 +232,7 @@ public class DebtService {
     }
 
 
-    public void isValidDebtPriority(CreateDebtPriorityRequest request, User user, List<String> errors){
+    private void _isValidDebtPriority(CreateDebtPriorityRequest request, User user, List<String> errors){
         DebtPriority globalExistingPriority = debtPriorityRepository.findByNameAndGlobal(request.getName(), true);
         DebtPriority userExistingPriority = user != null ? debtPriorityRepository.findByNameAndUser(request.getName(), user) : null;
         if(globalExistingPriority != null || userExistingPriority != null){
@@ -214,7 +240,7 @@ public class DebtService {
         }
     }
 
-    public void isValidDebtCategory(CreateDebtCategoryRequest request, User user, List<String> errors){
+    private void _isValidDebtCategory(CreateDebtCategoryRequest request, User user, List<String> errors){
         DebtCategory globalExistingCategory = debtCategoryRepository.findByNameAndGlobal(request.getName(), true);
         DebtCategory userExistingPriority = user != null ? debtCategoryRepository.findByNameAndUser(request.getName(), user) : null;
         if(globalExistingCategory != null || userExistingPriority != null){
@@ -222,11 +248,35 @@ public class DebtService {
         }
     }
 
-    public Debt checkIfDebtExists(String debtId, List<String> errors){
+    private Debt _checkIfDebtExists(String debtId, List<String> errors){
         Debt debt = debtRepository.findById(debtId).orElse(null);
         if(debt == null){
             errors.add(translateService.getMessage("debt.not.found"));
         }
         return debt;
+    }
+
+    private DebtPayment _checkIfDebtPaymentExists(String debtPaymentId, List<String> errors){
+        DebtPayment debtPayment = debtPaymentRepository.findById(debtPaymentId).orElse(null);
+        if(debtPayment == null){
+            errors.add(translateService.getMessage("debt.payment.not.found"));
+        }
+        return debtPayment;
+    }
+
+    private DebtCategory _findCategoryByIdAnsUserId(String categoryId, String userId, List<String> errors){
+        DebtCategory debtCategory = debtCategoryRepository.findByIdAndUserId(categoryId, userId).orElse(null);
+        if(debtCategory == null){
+            errors.add(translateService.getMessage("debt.category.not.found"));
+        }
+        return debtCategory;
+    }
+
+    private DebtPriority _findPriorityByIdAndUserId(String priorityId, String userId, List<String> errors){
+        DebtPriority debtPriority = debtPriorityRepository.findByIdAndUserId(priorityId, userId).orElse(null);
+        if(debtPriority == null){
+            errors.add(translateService.getMessage("debt.priority.not.found"));
+        }
+        return debtPriority;
     }
 }

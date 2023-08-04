@@ -3,45 +3,79 @@ package com.debts.debtsappbackend.helper;
 import com.debts.debtsappbackend.dto.UserDto;
 import com.debts.debtsappbackend.entity.User;
 import com.debts.debtsappbackend.model.request.CreateUserRequest;
-import com.debts.debtsappbackend.model.response.CreateUserResponse;
+import com.debts.debtsappbackend.model.response.UserResponse;
 import com.debts.debtsappbackend.services.TranslateService;
+import com.debts.debtsappbackend.util.StatusType;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.LocaleResolver;
 
-import java.util.Locale;
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
+@Slf4j
 public class UserHelper {
     private final TranslateService translateService;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserHelper(TranslateService translateService){
+    public UserHelper(TranslateService translateService, PasswordEncoder passwordEncoder) {
         this.translateService = translateService;
+        this.passwordEncoder = passwordEncoder;
     }
-    public CreateUserResponse createUserResponse(User user, String error, Locale locale) {
+    public UserResponse createUserResponse(User user, String labelType, List<String> errors) {
         try {
-            if(error != null)
-                return new CreateUserResponse(false, translateService.getMessage("user.error.create", locale), translateService.getMessage(error, locale), null);
-            return new CreateUserResponse(true, translateService.getMessage("user.success.create", locale), null, convertToDto(user));
+            if(errors != null)
+                return new UserResponse(false, translateService.getMessage("user.error."+ labelType), errors, null);
+            return new UserResponse(true, translateService.getMessage("user.success."+ labelType), null, convertToDto(user));
         }catch (Exception e) {
-            return new CreateUserResponse(false, translateService.getMessage("user.error.create", locale), e.getMessage(), null);
+            return new UserResponse(false, translateService.getMessage("user.error."+ labelType), null, null);
         }
     }
 
-    public UserDto convertToDto(User user){
-        return new UserDto(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getSecondName(), user.getSecondLastName(), user.getCreatedAt(), user.getUpdatedAt(), user.getLastLogin(), user.getPhone(), user.getStatus());
+    public User setUserDefaultFields(CreateUserRequest createUserRequest){
+        User user = mapUserFromRequest(createUserRequest);
+        String hashedPassword = passwordEncoder.encode(user.getPassword());
+        user.setCreatedAt(LocalDateTime.now());
+        user.setStatus(StatusType.ACTIVE.getCode());
+        user.setPassword(hashedPassword);
+        user.setResetPassword(false);
+        return user;
     }
 
-    public User mapUserFromRequest(CreateUserRequest userRequest){
+    public UserDto convertToDto(User user){
+        return UserDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .secondName(user.getSecondName())
+                .secondLastName(user.getSecondLastName())
+                .email(user.getEmail())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .lastLogin(user.getLastLogin())
+                .phone(user.getPhone())
+                .status(user.getStatus())
+                .salary(user.getSalary())
+                .build();
+    }
+
+    public User mapUserFromRequest(CreateUserRequest createUserRequest){
         return User.builder()
-                .username(userRequest.getUsername())
-                .password(userRequest.getPassword())
-                .firstName(userRequest.getFirstName())
-                .lastName(userRequest.getLastName())
-                .secondName(userRequest.getSecondName())
-                .secondLastName(userRequest.getSecondLastName())
-                .email(userRequest.getEmail())
-                .phone(userRequest.getPhone())
+                .username(createUserRequest.getUsername())
+                .password(createUserRequest.getPassword())
+                .firstName(createUserRequest.getFirstName())
+                .lastName(createUserRequest.getLastName())
+                .secondName(createUserRequest.getSecondName())
+                .secondLastName(createUserRequest.getSecondLastName())
+                .email(createUserRequest.getEmail())
+                .phone(createUserRequest.getPhone())
+                .salary(createUserRequest.getSalary())
                 .build();
     }
 }

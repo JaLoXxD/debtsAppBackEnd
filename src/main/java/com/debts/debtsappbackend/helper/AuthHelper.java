@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 @Slf4j
@@ -29,10 +30,11 @@ public class AuthHelper extends GenericHelper{
     }
 
     public RecoverPasswordResponse generateRecoverPasswordResponse(String email, List<String> errors){
+        log.info("Recover password response: " + errors);
         return RecoverPasswordResponse.builder()
-                .success(errors == null)
-                .message(errors == null ? translateService.getMessage("user.email.sent.success") : translateService.getMessage("user.email.sent.error"))
-                .errors(errors)
+                .success(Objects.requireNonNull(errors).isEmpty())
+                .message(Objects.requireNonNull(errors).isEmpty() ? translateService.getMessage("user.email.sent.success") : translateService.getMessage("user.email.sent.error"))
+                .errors(Objects.requireNonNull(errors).isEmpty() ? null : errors)
                 .email(email)
                 .build();
     }

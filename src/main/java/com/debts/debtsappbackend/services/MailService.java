@@ -21,6 +21,11 @@ public class MailService {
         message.setTo(email);
         message.setSubject(subject);
         message.setText(text);
-        javaMailSender.send(message);
+        try{
+            javaMailSender.send(message);
+            log.info("Email sent to: " + email);
+        }catch(Exception e) {
+            log.info("Error sending email to: " + email, e);
+        }
     }
 }

@@ -34,10 +34,10 @@ public class UserController {
     public ResponseEntity<UserResponse> getUserData(@RequestHeader("Authorization") String token){
         try{
             log.info("ENTER REST GET USER DATA");
-            return ResponseEntity.status(HttpStatus.OK).body(userService.getUserData(token));
+            return ResponseEntity.status(HttpStatus.OK).body(userService.getUserData(token, new ArrayList<>()));
         } catch (Exception e){
             log.error("ERROR:", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.getUserData(null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.getUserData(null, List.of(e.getMessage())));
         }
     }
 

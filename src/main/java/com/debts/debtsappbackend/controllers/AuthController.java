@@ -55,7 +55,9 @@ public class AuthController {
             if(bindingResult.hasErrors()){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.login(null, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(userService.login(loginRequest, new ArrayList<>()));
+            JwtResponse response = userService.login(loginRequest, new ArrayList<>());
+            HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("ERROR:", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.login(loginRequest, List.of(e.getMessage())));
@@ -70,7 +72,9 @@ public class AuthController {
             if(bindingResult.hasErrors()){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.recoverPassword(null, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(userService.recoverPassword(recoverPasswordRequest, new ArrayList<>()));
+            RecoverPasswordResponse response = userService.recoverPassword(recoverPasswordRequest, new ArrayList<>());
+            HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("ERROR:", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.recoverPassword(null, List.of(e.getMessage())));

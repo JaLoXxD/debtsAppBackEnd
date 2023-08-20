@@ -17,10 +17,11 @@ public class UserPrincipal implements UserDetails {
     private String username;
     private String email;
     private String password;
+    private Boolean resetPassword;
     private Collection<? extends GrantedAuthority> authorities;
 
     public static UserPrincipal build(User user) {
-        return new UserPrincipal(user.getUsername(), user.getEmail(), user.getPassword(), new ArrayList<>());
+        return new UserPrincipal(user.getUsername(), user.getEmail(), user.getPassword(), user.getResetPassword(), new ArrayList<>());
     }
 
     @Override

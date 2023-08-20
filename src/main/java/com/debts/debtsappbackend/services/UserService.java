@@ -4,10 +4,10 @@ import com.debts.debtsappbackend.entity.User;
 import com.debts.debtsappbackend.helper.AuthHelper;
 import com.debts.debtsappbackend.helper.UserHelper;
 import com.debts.debtsappbackend.model.request.*;
-import com.debts.debtsappbackend.model.response.UserResponse;
 import com.debts.debtsappbackend.model.response.GenericResponse;
 import com.debts.debtsappbackend.model.response.JwtResponse;
 import com.debts.debtsappbackend.model.response.RecoverPasswordResponse;
+import com.debts.debtsappbackend.model.response.UserResponse;
 import com.debts.debtsappbackend.repository.UserRepository;
 import com.debts.debtsappbackend.security.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +17,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -66,15 +68,17 @@ public class UserService {
         return userHelper.createUserResponse(newUser, "create", errors);
     }
 
+    @Transactional
     public JwtResponse login(LoginRequest request, List<String> errors){
         try{
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             if(!errors.isEmpty()){
                 return authHelper.generateLoginResponse(null, errors);
             }
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
             String token = jwtUtil.generateToken(authentication);
-            userRepository.findByUsername(request.getUsername()).ifPresent(user -> userRepository.updateLasLoginById(user.getId(), LocalDateTime.now()));
+            log.info("authentication {}", authentication);
+            userRepository.findByUsername(request.getUsername()).ifPresent(user -> userRepository.updateLastLoginById(user.getId(), LocalDateTime.now()));
             return authHelper.generateLoginResponse(token, null);
         } catch (Exception e){
             log.error("ERROR MSG {}", e.getMessage());
@@ -82,40 +86,38 @@ public class UserService {
         }
     }
 
+    @Transactional
     public RecoverPasswordResponse recoverPassword(RecoverPasswordRequest request, List<String> errors){
         try{
             if(!errors.isEmpty()){
                 return authHelper.generateRecoverPasswordResponse(null, errors);
             }
-            boolean user = userRepository.findByEmail(request.getEmail()).isPresent();
-            if(!user){
+            User user = userRepository.findByEmailOrUsername(request.getUserId()).orElse(null);
+            if(user == null){
                 errors.add(translateService.getMessage("user.email.not.found"));
                 return authHelper.generateRecoverPasswordResponse(null, errors);
             }
-            String newPassword = authHelper.generateRandomPassword(16);
-            _recoverPasswordByEmail(request.getEmail(), newPassword);
-            mailService.sendMail(request.getEmail(), "Recover password", "Your password is: " + newPassword);
-            return authHelper.generateRecoverPasswordResponse(request.getEmail(), errors);
+            String newPassword = authHelper.generateRandomPassword(8);
+            mailService.sendMail(user.getEmail(), "Recover password", "Your password is: " + newPassword);
+            _recoverPasswordByEmail(user.getEmail(), newPassword);
+            return authHelper.generateRecoverPasswordResponse(user.getEmail(), errors);
         } catch (Exception e){
             log.error("ERROR MSG {}", e.getMessage());
             return authHelper.generateRecoverPasswordResponse(null, _mapExceptionToErrors(e, errors));
         }
     }
 
+    @Transactional
     public GenericResponse updatePassword(UpdatePasswordRequest request, String token, List<String> errors){
         try{
-            String username = jwtUtil.getUsernameFromToken(token);
-            User user = userRepository.findByUsername(username).orElse(null);
-            if(user == null){
-                errors.add(translateService.getMessage("user.not.found"));
-            }
+            User user = checkIfUserExists(token, errors);
             if(user != null && !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())){
                 errors.add(translateService.getMessage("user.password.current.error"));
             }
             if(!errors.isEmpty()){
                 return authHelper.buildGenericResponse(translateService.getMessage("user.password.update.error"), errors);
             }
-            _updatePasswordById(user.getId(), request.getNewPassword());
+            _updatePasswordById(Objects.requireNonNull(user).getId(), request.getNewPassword());
             return authHelper.buildGenericResponse(translateService.getMessage("user.password.update.success"), null);
         } catch (Exception e){
             log.error("ERROR MSG {}", e.getMessage());
@@ -123,13 +125,10 @@ public class UserService {
         }
     }
 
+    @Transactional
     public GenericResponse updateUser(UpdateUserRequest request, String token, List<String> errors){
         try{
-            String username = jwtUtil.getUsernameFromToken(token);
-            User user = userRepository.findByUsername(username).orElse(null);
-            if(user == null){
-                errors.add(translateService.getMessage("user.not.found"));
-            }
+            User user = checkIfUserExists(token, errors);
             if(!errors.isEmpty()){
                 return authHelper.buildGenericResponse(translateService.getMessage("user.update.error"), errors);
             }
@@ -141,11 +140,10 @@ public class UserService {
         }
     }
 
-    public UserResponse getUserData(String token){
-        String username = jwtUtil.getUsernameFromToken(token);
-        User user = userRepository.findByUsername(username).orElse(null);
+    public UserResponse getUserData(String token, List<String> errors){
+        User user = checkIfUserExists(token, errors);
         if(user == null){
-            return userHelper.createUserResponse(null, "get", List.of(translateService.getMessage("user.not.found")));
+            return userHelper.createUserResponse(null, "get", errors);
         }
         return userHelper.createUserResponse(user, "get", null);
     }
@@ -165,6 +163,7 @@ public class UserService {
             errorList.add(translateService.getMessage(e.getMessage().replace(" ",".").toLowerCase()));
         if(errors != null)
             errorList.addAll(errors);
+        log.info("ERROR LIST {}", errorList);
         return errorList;
     }
 
@@ -172,7 +171,7 @@ public class UserService {
         userRepository.recoverUserPasswordByEmail(email, passwordEncoder.encode(password));
     }
 
-    private void _updatePasswordById(String userId, String password) {
+    private void _updatePasswordById(Long userId, String password) {
         userRepository.updateUserPasswordById(userId, passwordEncoder.encode(password));
     }
 }

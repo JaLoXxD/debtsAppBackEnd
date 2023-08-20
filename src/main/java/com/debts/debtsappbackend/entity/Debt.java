@@ -1,35 +1,52 @@
 package com.debts.debtsappbackend.entity;
 
 import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-@Data
+@Entity
+@Table(name = "debt")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@Builder
-@Document(collection = "debt")
+//TODO: ADD TO STRING METHOD
 public class Debt {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false, insertable = false)
+    private Long id;
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
+    @Column(name = "description", length = 500)
     private String description;
+    @Column(name = "startDate", nullable = false)
     private LocalDateTime startDate;
+    @Column(name = "endDate", nullable = false)
     private LocalDateTime endDate;
+    @Column(name = "createdAt", nullable = false)
+    private LocalDateTime createdAt;
+    @Column(name = "collector", nullable = false)
     private String collector;
+    @Column(name = "amount", nullable = false)
     private BigDecimal amount;
+    @Column(name = "termInMonths", nullable = false)
     private BigDecimal termInMonths;
-    /* REFERENCE TO DEBT CATEGORY DOCUMENT */
-    @DBRef
-    private DebtCategory category;
-    /* REFERENCE TO DEBT PRIORITY DOCUMENT */
-    @DBRef
-    private DebtPriority priority;
-    /*REFERENCE TO USER DOCUMENT*/
-    @DBRef
+    /* RELATIONSHIPS */
+    @ManyToOne
+    @JoinColumn(name = "userId")
     private User user;
+    @ManyToOne
+    @JoinColumn(name = "debtCategoryId", nullable = false)
+    private DebtCategory debtCategory;
+    @ManyToOne
+    @JoinColumn(name = "debtPriorityId", nullable = false)
+    private DebtPriority debtPriority;
+    @OneToMany(mappedBy = "debt")
+    private List<DebtPayment> debtPayments = new ArrayList<>();
 }

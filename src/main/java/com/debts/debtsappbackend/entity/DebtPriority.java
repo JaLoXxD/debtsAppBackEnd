@@ -1,25 +1,48 @@
 package com.debts.debtsappbackend.entity;
 
 import lombok.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.validation.constraints.NotNull;
+import javax.persistence.*;
+import java.util.List;
 
-@Data
+@Entity
+@Table(name = "debtPriority")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@Builder
-@Document(collection = "debtPriority")
+//TODO: ADD TO STRING METHOD
 public class DebtPriority {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false, insertable = false)
+    private Long id;
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
+    @Column(name = "description", length = 500)
     private String description;
+    @Column(name = "global", nullable = false)
     private Boolean global;
+    @Column(name = "color", nullable = false)
     private String color;
-    /*REFERENCE TO USER DOCUMENT*/
-    @DBRef
+    /* RELATIONSHIPS */
+    @ManyToOne
+    @JoinColumn(name = "userId")
     private User user;
+    @OneToMany(mappedBy = "debtPriority")
+    private List<Debt> debts;
+
+    @Override
+    public String toString() {
+        return "DebtPriority{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", global=" + global +
+                ", color='" + color + '\'' +
+                ", user=" + user +
+                ", debt=" + debts +
+                '}';
+    }
 }

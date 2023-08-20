@@ -1,31 +1,45 @@
 package com.debts.debtsappbackend.entity;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
+import lombok.*;
 
-import javax.validation.constraints.NotNull;
+import javax.persistence.*;
+import java.util.List;
 
-@Data
+@Entity
+@Table(name = "debtCategory")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@Builder
-@Document(collection = "debtCategory")
+//TODO: ADD TO STRING METHOD
 public class DebtCategory {
     @Id
-    private String id;
-    @Indexed(unique = true)
-    @NotNull
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, updatable = false, insertable = false)
+    private Long id;
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
+    @Column(name = "description", length = 500)
     private String description;
-    @NotNull
+    @Column(name = "global", nullable = false)
     private Boolean global;
-    /*REFERENCE TO USER DOCUMENT*/
-    @DBRef
+    /* RELATIONSHIPS */
+    @ManyToOne
+    @JoinColumn(name = "userId")
     private User user;
+    @OneToMany(mappedBy = "debtCategory")
+    private List<Debt> debts;
+
+    @Override
+    public String toString() {
+        return "DebtCategory{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", global=" + global +
+                ", user=" + user +
+                ", debt=" + debts +
+                '}';
+    }
 }

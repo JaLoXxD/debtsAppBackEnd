@@ -1,9 +1,11 @@
 package com.debts.debtsappbackend.repository;
 
 import com.debts.debtsappbackend.entity.DebtPayment;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.mongodb.repository.Update;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -12,10 +14,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DebtPaymentRepository extends MongoRepository<DebtPayment, String> {
-    List<DebtPayment> findAllByDebtId(String debtId);
-    Optional<DebtPayment> findById(String debtPaymentId);
-    @Query("{ '_id' : ?0 }")
-    @Update("{ '$set': { 'name': ?1, 'description': ?2, 'paymentDate': ?3, 'maxPaymentDate': ?4, 'amount': ?5, 'balanceAfterPay': ?6, 'balanceBeforePay': ?7, 'image': ?8, 'payed': ?9  } }")
-    void updateById(String debtPaymentId, String name, String description, LocalDateTime paymentDate, LocalDateTime maxPaymentDate, BigDecimal amount, BigDecimal balanceAfterPay, BigDecimal balanceBeforePay, String image, Boolean payed);
+public interface DebtPaymentRepository extends JpaRepository<DebtPayment, Long> {
+//    @Query("{ 'debtId' : ?0 }")
+    List<DebtPayment> findAllByDebtId(Long debtId);
+    Page<DebtPayment> findAllByDebtId(Long debtId, Pageable pageable);
+    Optional<DebtPayment> findById(Long debtPaymentId);
+    @Modifying
+    @Query("UPDATE DebtPayment dp SET dp.name = :name, dp.description = :description, dp.paymentDate = :paymentDate, dp.maxPaymentDate = :maxPaymentDate, dp.amount = :amount, dp.balanceAfterPay = :balanceAfterPay, dp.balanceBeforePay = :balanceBeforePay, dp.image = :image, dp.payed = :payed WHERE dp.id = :debtPaymentId")
+    void updateById(Long debtPaymentId, String name, String description, LocalDateTime paymentDate, LocalDateTime maxPaymentDate, BigDecimal amount, BigDecimal balanceAfterPay, BigDecimal balanceBeforePay, String image, Boolean payed);
 }

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @Builder
 public class DebtPriorityDto {
-    private String id;
+    private Long id;
     private String name;
     private String description;
     private Boolean global;

@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DebtDto {
-    private String id;
+    private Long id;
     private String name;
     private String description;
     private DebtCategoryDto category;

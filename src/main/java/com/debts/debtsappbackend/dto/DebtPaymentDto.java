@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 public class DebtPaymentDto {
+    private Long id;
     private String name;
     private String description;
     private LocalDateTime paymentDate;

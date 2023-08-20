@@ -22,8 +22,6 @@ public class DebtPaymentRequest {
     @NotNull
     private LocalDateTime maxPaymentDate;
     @NotNull
-    private LocalDateTime createdAt;
-    @NotNull
     private BigDecimal amount;
     @NotNull
     private BigDecimal balanceAfterPay;

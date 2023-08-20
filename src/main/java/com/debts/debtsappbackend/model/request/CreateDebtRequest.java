@@ -14,11 +14,11 @@ import java.time.LocalDateTime;
 public class CreateDebtRequest {
     @NotNull
     private String name;
-    @NotNull
-    private String category;
     private String description;
     @NotNull
-    private String priority;
+    private Long category;
+    @NotNull
+    private Long priority;
     @NotNull
     private LocalDateTime startDate;
     @NotNull

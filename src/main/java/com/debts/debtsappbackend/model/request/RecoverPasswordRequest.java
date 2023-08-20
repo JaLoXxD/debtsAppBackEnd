@@ -14,6 +14,6 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 public class RecoverPasswordRequest {
     @NotNull
-    @Email
-    private String email;
+    //could be email or username
+    private String userId;
 }

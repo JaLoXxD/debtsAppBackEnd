@@ -114,6 +114,9 @@ public class UserService {
             if(user != null && !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())){
                 errors.add(translateService.getMessage("user.password.current.error"));
             }
+            if(!request.getNewPassword().equals(request.getConfirmPassword())){
+                errors.add(translateService.getMessage("user.password.confirm.error"));
+            }
             if(!errors.isEmpty()){
                 return authHelper.buildGenericResponse(translateService.getMessage("user.password.update.error"), errors);
             }

@@ -60,6 +60,7 @@ public class UserHelper {
                 .phone(user.getPhone())
                 .status(user.getStatus())
                 .salary(user.getSalary())
+                .resetPassword(user.getResetPassword())
                 .build();
     }
 

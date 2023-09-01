@@ -26,4 +26,5 @@ public class UserDto {
     private String phone;
     private String status;
     private BigDecimal salary;
+    private Boolean resetPassword;
 }

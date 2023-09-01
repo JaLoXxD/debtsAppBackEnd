@@ -40,7 +40,9 @@ public class AuthController {
             if(bindingResult.hasErrors()){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.registerUser(null, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(userService.registerUser(user, null));
+            UserResponse response = userService.registerUser(user, null);
+            HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("ERROR:", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.registerUser(null, List.of(e.getMessage())));

@@ -49,7 +49,9 @@ public class UserController {
             if(bindingResult.hasErrors()){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(userService.updatePassword(null, token, validatorService.getErrors(bindingResult)));
             }
-            return ResponseEntity.status(HttpStatus.OK).body(userService.updatePassword(updatePasswordRequest, token, new ArrayList<>()));
+            GenericResponse response = userService.updatePassword(updatePasswordRequest, token, new ArrayList<>());
+            HttpStatus status = response.getSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e){
             log.error("ERROR:", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(userService.updatePassword(null, token, List.of(e.getMessage())));

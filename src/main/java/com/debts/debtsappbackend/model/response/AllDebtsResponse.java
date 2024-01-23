@@ -12,10 +12,9 @@ import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AllDebtsResponse extends GenericResponse {
+public class AllDebtsResponse extends GenericPageResponse {
     private List<DebtDto> debts;
 }

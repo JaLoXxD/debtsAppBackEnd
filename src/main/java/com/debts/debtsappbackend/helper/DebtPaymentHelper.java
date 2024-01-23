@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class DebtPaymentHelper extends GenericHelper{
-    private TranslateService translateService;
+    private final TranslateService translateService;
 
     public DebtPaymentHelper(TranslateService translateService) {
+        super(translateService);
         this.translateService = translateService;
     }
 
@@ -28,34 +29,11 @@ public class DebtPaymentHelper extends GenericHelper{
                 .paymentDate(paymentDate)
                 .maxPaymentDate(paymentDate)
                 .createdAt(LocalDateTime.now())
-                .amount(amount)
+                .amount(BigDecimal.valueOf(0))
+                .expectedAmount(amount)
                 .payed(false)
                 .debt(debt)
                 .build();
-    }
-
-    public DebtPaymentResponse buildDebtPaymentResponse(DebtPayment debtPayment, List<DebtPayment> debtPayments, List<String> errors){
-        try{
-            if(!errors.isEmpty()){
-                return DebtPaymentResponse.builder()
-                        .success(false)
-                        .message(translateService.getMessage("debt.payment.get.error"))
-                        .errors(errors)
-                        .build();
-            }
-            return DebtPaymentResponse.builder()
-                    .success(true)
-                    .message(translateService.getMessage("debt.payment.get.success"))
-                    .debtPayment(debtPayment != null ? convertDebtPaymentToDto(debtPayment) : null)
-                    .debtPayments(debtPayments != null ? debtPayments.stream().map(this::convertDebtPaymentToDto).collect(Collectors.toList()) : null)
-                    .build();
-        } catch(Exception e) {
-            return DebtPaymentResponse.builder()
-                    .success(false)
-                    .message(translateService.getMessage("debt.payment.get.error"))
-                    .errors(errors)
-                    .build();
-        }
     }
 
     public DebtPaymentDto convertDebtPaymentToDto(DebtPayment debtPayment){
@@ -67,6 +45,7 @@ public class DebtPaymentHelper extends GenericHelper{
                 .maxPaymentDate(debtPayment.getMaxPaymentDate())
                 .createdAt(debtPayment.getCreatedAt())
                 .amount(debtPayment.getAmount())
+                .expectedAmount(debtPayment.getExpectedAmount())
                 .balanceAfterPay(debtPayment.getBalanceAfterPay())
                 .balanceBeforePay(debtPayment.getBalanceBeforePay())
                 .image(debtPayment.getImage())

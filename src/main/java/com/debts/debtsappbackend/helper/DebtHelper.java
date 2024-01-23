@@ -24,6 +24,7 @@ public class DebtHelper extends GenericHelper{
     private final DebtPriorityHelper debtPriorityHelper;
 
     public DebtHelper(TranslateService translateService, UserHelper userHelper, DebtPaymentHelper debtPaymentHelper, DebtCategoryHelper debtCategoryHelper, DebtPriorityHelper debtPriorityHelper) {
+        super(translateService);
         this.translateService = translateService;
         this.userHelper = userHelper;
         this.debtPaymentHelper = debtPaymentHelper;
@@ -55,25 +56,46 @@ public class DebtHelper extends GenericHelper{
         }
     }
 
-    public AllDebtsResponse buildAllDebtsResponse(List<Debt> debts, List<String> errors) {
-        try{
-            log.error("ERRORS: {}", errors);
-            if(!errors.isEmpty()){
-                return AllDebtsResponse.builder()
-                        .success(false)
-                        .message(translateService.getMessage("debt.get.all.error"))
-                        .errors(errors)
-                        .build();
-            }
-            return AllDebtsResponse.builder()
-                    .success(true)
-                    .message(translateService.getMessage("debt.get.all.success"))
-                    .debts(debts.stream().map(debt -> convertDebtToDto(debt, null, false)).collect(Collectors.toList()))
-                    .build();
-        } catch(Exception e){
+    public AllDebtsResponse buildAllDebtsResponse(List<Debt> debts, Long totalPages, Long totalElements, List<String> errors) {
+        if(!errors.isEmpty()){
             return AllDebtsResponse.builder()
                     .success(false)
                     .message(translateService.getMessage("debt.get.all.error"))
+                    .errors(errors)
+                    .totalPages(totalPages)
+                    .totalElements(totalElements)
+                    .build();
+        }
+        return AllDebtsResponse.builder()
+                .success(true)
+                .message(translateService.getMessage("debt.get.all.success"))
+                .debts(debts.stream().map(debt -> convertDebtToDto(debt, null, false)).collect(Collectors.toList()))
+                .totalPages(totalPages)
+                .totalElements(totalElements)
+                .build();
+    }
+
+    public DebtPaymentResponse buildDebtPaymentResponse(Debt debt, List<DebtPayment> debtPayments, Long totalElements, Long totalPages, List<String> errors){
+        try{
+            if(!errors.isEmpty()){
+                return DebtPaymentResponse.builder()
+                        .success(false)
+                        .message(translateService.getMessage("debt.payment.get.error"))
+                        .errors(errors)
+                        .build();
+            }
+            return DebtPaymentResponse.builder()
+                    .success(true)
+                    .message(translateService.getMessage("debt.payment.get.success"))
+                    .debtPayments(debtPayments != null ? debtPayments.stream().map(this.debtPaymentHelper::convertDebtPaymentToDto).collect(Collectors.toList()) : null)
+                    .debt(convertDebtToDto(debt, null, false))
+                    .totalElements(totalElements)
+                    .totalPages(totalPages)
+                    .build();
+        } catch(Exception e) {
+            return DebtPaymentResponse.builder()
+                    .success(false)
+                    .message(translateService.getMessage("debt.payment.get.error"))
                     .errors(errors)
                     .build();
         }
@@ -90,6 +112,8 @@ public class DebtHelper extends GenericHelper{
                 .endDate(debt.getEndDate())
                 .collector(debt.getCollector())
                 .amount(debt.getAmount())
+                .pendingAmount(debt.getPendingAmount())
+                .termInMonths(debt.getTermInMonths())
                 .user(withUser ? userHelper.convertToDto(debt.getUser()) : null)
                 .debtPayments(debtPayments != null ? debtPayments.stream().map(debtPaymentHelper::convertDebtPaymentToDto).collect(Collectors.toList()) : null)
                 .build();
@@ -107,6 +131,7 @@ public class DebtHelper extends GenericHelper{
                 .createdAt(LocalDateTime.now())
                 .collector(request.getCollector())
                 .amount(request.getAmount())
+                .pendingAmount(request.getAmount())
                 .termInMonths(request.getTermInMonths())
                 .debtPayments(new ArrayList<>())
                 .user(user)

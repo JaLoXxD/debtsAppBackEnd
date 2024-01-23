@@ -17,6 +17,7 @@ public class AuthHelper extends GenericHelper{
     TranslateService translateService;
 
     public AuthHelper(TranslateService translateService) {
+        super(translateService);
         this.translateService = translateService;
     }
 

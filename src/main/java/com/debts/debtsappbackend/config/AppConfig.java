@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
@@ -34,5 +35,14 @@ public class AppConfig implements WebMvcConfigurer {
         messageSource.setBasename("messages");
         messageSource.setDefaultEncoding("UTF-8");
         return messageSource;
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String currentWorkingDir = System.getProperty("user.dir");
+        String uploadsDirPath = currentWorkingDir + "/src/main/java/com/debts/debtsappbackend/uploads/";
+        registry
+                .addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + uploadsDirPath);
     }
 }

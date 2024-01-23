@@ -53,15 +53,55 @@ public class DebtController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.createDebt(createDebtRequest, token, List.of(e.getMessage())));
         }
     }
-
-    @GetMapping("/all")
-    public ResponseEntity<AllDebtsResponse> getAllDebts(@RequestHeader("Authorization") String token) {
+    @PutMapping
+    public ResponseEntity<DebtResponse> updateDebt(@RequestBody CreateDebtRequest createDebtRequest, BindingResult bindingResult, @RequestHeader("Authorization") String token) {
         try{
-            log.info("ENTER TO REST GET ALL DEBTS");
-            return ResponseEntity.status(HttpStatus.OK).body(debtService.getAllDebts(token, new ArrayList<>()));
+            log.info("ENTER TO REST UPDATE DEBT");
+            validatorService.validate("debt", createDebtRequest, bindingResult);
+            if(bindingResult.hasErrors()){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.updateDebt(createDebtRequest, token, validatorService.getErrors(bindingResult)));
+            }
+            DebtResponse debtResponse = debtService.createDebt(createDebtRequest, token, new ArrayList<>());
+            HttpStatus status = debtResponse.getErrors() == null ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(debtResponse);
+
         } catch(Exception e) {
             log.error("ERROR {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getAllDebts(token, List.of(e.getMessage())));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.updateDebt(createDebtRequest, token, List.of(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/payments/{debtId}")
+    public ResponseEntity<GenericResponse> getDebtPayments(@RequestParam(name = "page", required = false) Integer page, @RequestParam(name = "size", required = false) Integer size, @RequestParam(name = "filter", required = false) String filter, @PathVariable("debtId") Long debtId, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST GET DEBT PAYMENTS");
+            return ResponseEntity.status(HttpStatus.OK).body(debtPaymentService.getAllDebtPaymentsByDebtId(debtId, page, size, filter, token, new ArrayList<>()));
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtPaymentService.getAllDebtPaymentsByDebtId(debtId, page, size, token, filter, List.of(e.getMessage())));
+        }
+    }
+
+    @DeleteMapping("/{debtId}")
+    public ResponseEntity<GenericResponse> deleteDebt(@PathVariable("debtId") Long debtId, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST DELETE DEBT");
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.deleteDebt(debtId, token, new ArrayList<>()));
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.deleteDebt(debtId, token, List.of(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<AllDebtsResponse> getAllDebts(@RequestParam(name = "page", required = false) Integer page, @RequestParam(name = "size", required = false) Integer size, @RequestParam(name = "filter", required = false) String filter, @RequestHeader("Authorization") String token) {
+        try{
+            log.info("ENTER TO REST GET ALL DEBTS");
+            log.info("PAGE {} SIZE {}", page, size);
+            return ResponseEntity.status(HttpStatus.OK).body(debtService.getAllDebts(page, size, filter, token, new ArrayList<>()));
+        } catch(Exception e) {
+            log.error("ERROR {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.getAllDebts(page, size, filter, token, List.of(e.getMessage())));
         }
     }
 
@@ -81,6 +121,7 @@ public class DebtController {
     public ResponseEntity<GenericResponse> payDebt(@PathVariable("debtPaymentId") Long debtPaymentId, @RequestBody DebtPaymentRequest request, @RequestHeader("Authorization") String token, BindingResult bindingResult) {
         try{
             log.info("ENTER TO REST PAYMENT");
+            log.info("request {}", request);
             validatorService.validate("debt", request, bindingResult);
             if(bindingResult.hasErrors())
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtPaymentService.updateDebtPayment(request, debtPaymentId, token, validatorService.getErrors(bindingResult)));

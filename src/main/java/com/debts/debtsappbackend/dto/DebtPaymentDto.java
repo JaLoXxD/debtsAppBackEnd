@@ -18,6 +18,7 @@ public class DebtPaymentDto {
     private LocalDateTime maxPaymentDate;
     private LocalDateTime createdAt;
     private BigDecimal amount;
+    private BigDecimal expectedAmount;
     private BigDecimal balanceAfterPay;
     private BigDecimal balanceBeforePay;
     private String image;

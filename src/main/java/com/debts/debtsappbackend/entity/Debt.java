@@ -15,7 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Setter
-//TODO: ADD TO STRING METHOD
 public class Debt {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,6 +34,8 @@ public class Debt {
     private String collector;
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
+    @Column(name = "pendingAmount", nullable = false)
+    private BigDecimal pendingAmount;
     @Column(name = "termInMonths", nullable = false)
     private BigDecimal termInMonths;
     /* RELATIONSHIPS */
@@ -49,4 +50,24 @@ public class Debt {
     private DebtPriority debtPriority;
     @OneToMany(mappedBy = "debt")
     private List<DebtPayment> debtPayments = new ArrayList<>();
+
+    public Debt(Long id) {
+        this.id = id;
+    }
+
+    @Override
+    public String toString() {
+        return "Debt{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", startDate=" + startDate +
+                ", endDate=" + endDate +
+                ", createdAt=" + createdAt +
+                ", collector='" + collector + '\'' +
+                ", amount=" + amount +
+                ", pendingAmount=" + pendingAmount +
+                ", termInMonths=" + termInMonths +
+                '}';
+    }
 }

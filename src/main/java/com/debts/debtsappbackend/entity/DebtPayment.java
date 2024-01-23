@@ -31,6 +31,8 @@ public class DebtPayment {
     private LocalDateTime createdAt;
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
+    @Column(name = "expectedAmount", nullable = false)
+    private BigDecimal expectedAmount;
     @Column(name = "balanceAfterPay")
     private BigDecimal balanceAfterPay;
     @Column(name = "balanceBeforePay")

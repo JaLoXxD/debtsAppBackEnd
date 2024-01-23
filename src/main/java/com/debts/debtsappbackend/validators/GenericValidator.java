@@ -43,11 +43,12 @@ public class GenericValidator implements Validator {
     public void validate(Object target, Errors errors){
         Class<?> clazz = target.getClass();
         Field[] fields = clazz.getDeclaredFields();
-        log.debug("Validating class: " + clazz.getName());
-        log.debug("Validating class: " + clazz.getSimpleName());
+        log.info("Validating class: " + clazz.getName());
+        log.info("Validating class: " + clazz.getSimpleName());
         for(Field field : fields){
+            log.info("field: " + field.toString());
             if(Arrays.stream(field.getDeclaredAnnotations()).anyMatch(annotation -> annotation.annotationType().equals(NotNull.class))){
-                log.debug("Validating field: " + field.getName());
+                log.info("Validating field: " + field.getName());
                 ValidationUtils.rejectIfEmptyOrWhitespace(errors, field.getName(), getMessage("general.error.emptyField", "'"+ getMessage(errorType +"."+ field.getName(), (Object) null) +"'"));
             }
             //validate email

@@ -24,6 +24,8 @@ public class DebtDto {
     private LocalDateTime endDate;
     private String collector;
     private BigDecimal amount;
+    private BigDecimal pendingAmount;
+    private BigDecimal termInMonths;
     private UserDto user;
     private List<DebtPaymentDto> debtPayments;
 }

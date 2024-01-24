@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -15,19 +13,15 @@ import java.time.LocalDateTime;
 @Setter
 @Builder
 @ToString
-public class DebtPaymentRequest {
-    @NotNull
+public class DebtPaymentRequestParams {
     private Long debtId;
-    @NotNull
     private String name;
     private String description;
-    @NotNull
-    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime paymentDate;
-    @NotNull
     private BigDecimal amount;
-    @NotNull
     private BigDecimal pendingAmount;
-    @NotNull
     private Boolean payed;
+
+    // Getters and setters...
 }

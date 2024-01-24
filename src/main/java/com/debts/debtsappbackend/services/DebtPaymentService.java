@@ -5,6 +5,7 @@ import com.debts.debtsappbackend.entity.DebtPayment;
 import com.debts.debtsappbackend.helper.DebtHelper;
 import com.debts.debtsappbackend.helper.DebtPaymentHelper;
 import com.debts.debtsappbackend.model.request.DebtPaymentRequest;
+import com.debts.debtsappbackend.model.request.DebtPaymentRequestParams;
 import com.debts.debtsappbackend.model.response.DebtPaymentResponse;
 import com.debts.debtsappbackend.model.response.DebtResponse;
 import com.debts.debtsappbackend.model.response.GenericResponse;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -65,11 +67,12 @@ public class DebtPaymentService{
     }
 
     @Transactional
-    public GenericResponse updateDebtPayment(DebtPaymentRequest request, Long debtPaymentId, String token, List<String> errors) {
+    public GenericResponse updateDebtPayment(DebtPaymentRequestParams requestParams, MultipartFile image, Long debtPaymentId, String token, List<String> errors) {
         try{
+            DebtPaymentRequest request = debtPaymentHelper.mapDebtPaymentRequest(requestParams);
             userService.checkIfUserExists(token, errors);
             DebtPayment currentPayment = _checkIfDebtPaymentExists(debtPaymentId, errors);
-            String imageName = request.getImage() != null ? fileService.uploadFile(request.getImage(), errors) : null;
+            String imageName = image != null ? fileService.uploadFile(image, errors) : null;
             updateDebtPendingAmountById(request.getDebtId(), request.getPendingAmount(), errors);
             if(!errors.isEmpty()){
                 return debtPaymentHelper.buildGenericResponse(translateService.getMessage("debt.payment.update.error"), errors);
@@ -85,6 +88,7 @@ public class DebtPaymentService{
             return debtPaymentHelper.buildGenericResponse(translateService.getMessage("debt.payment.update.error"), errors);
         }
     }
+
 
     public void updateDebtPendingAmountById(Long debtId, BigDecimal pendingAmount, List<String> errors) {
         try {

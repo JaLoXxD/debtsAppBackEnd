@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Getter
 @Setter
-//TODO: ADD TO STRING METHOD
 public class DebtPayment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,18 +1,20 @@
 package com.debts.debtsappbackend.controllers;
 
-import com.debts.debtsappbackend.model.request.CreateDebtCategoryRequest;
-import com.debts.debtsappbackend.model.request.CreateDebtPriorityRequest;
-import com.debts.debtsappbackend.model.request.CreateDebtRequest;
-import com.debts.debtsappbackend.model.request.DebtPaymentRequest;
+import com.debts.debtsappbackend.model.request.*;
 import com.debts.debtsappbackend.model.response.*;
 import com.debts.debtsappbackend.services.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,20 +119,21 @@ public class DebtController {
         }
     }
 
-    @PutMapping("/payment/{debtPaymentId}")
-    public ResponseEntity<GenericResponse> payDebt(@PathVariable("debtPaymentId") Long debtPaymentId, @RequestBody DebtPaymentRequest request, @RequestHeader("Authorization") String token, BindingResult bindingResult) {
+    @PutMapping(value = "/payment/{debtPaymentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<GenericResponse> payDebt(
+            @PathVariable("debtPaymentId") Long debtPaymentId,
+            @ModelAttribute DebtPaymentRequestParams debtPaymentRequestParams,
+            @RequestPart("image") MultipartFile image,
+            @RequestHeader("Authorization") String token) {
         try{
             log.info("ENTER TO REST PAYMENT");
-            log.info("request {}", request);
-            validatorService.validate("debt", request, bindingResult);
-            if(bindingResult.hasErrors())
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtPaymentService.updateDebtPayment(request, debtPaymentId, token, validatorService.getErrors(bindingResult)));
-            GenericResponse genericResponse = debtPaymentService.updateDebtPayment(request, debtPaymentId, token, new ArrayList<>());
+            log.info("request {}", debtPaymentRequestParams);
+            GenericResponse genericResponse = debtPaymentService.updateDebtPayment(debtPaymentRequestParams, image, debtPaymentId, token, new ArrayList<>());
             HttpStatus status = genericResponse.getErrors() == null ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(genericResponse);
         } catch(Exception e) {
             log.error("ERROR {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtPaymentService.updateDebtPayment(request, debtPaymentId, token, List.of(e.getMessage())));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtPaymentService.updateDebtPayment(debtPaymentRequestParams, image, debtPaymentId, token, List.of(e.getMessage())));
         }
     }
 

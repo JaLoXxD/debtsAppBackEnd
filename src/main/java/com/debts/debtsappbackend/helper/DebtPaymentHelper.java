@@ -3,6 +3,8 @@ package com.debts.debtsappbackend.helper;
 import com.debts.debtsappbackend.dto.DebtPaymentDto;
 import com.debts.debtsappbackend.entity.Debt;
 import com.debts.debtsappbackend.entity.DebtPayment;
+import com.debts.debtsappbackend.model.request.DebtPaymentRequest;
+import com.debts.debtsappbackend.model.request.DebtPaymentRequestParams;
 import com.debts.debtsappbackend.model.response.DebtPaymentResponse;
 import com.debts.debtsappbackend.services.TranslateService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,17 @@ public class DebtPaymentHelper extends GenericHelper{
                 .expectedAmount(amount)
                 .payed(false)
                 .debt(debt)
+                .build();
+    }
+
+    public DebtPaymentRequest mapDebtPaymentRequest(DebtPaymentRequestParams debtPaymentRequestParams){
+        return DebtPaymentRequest.builder()
+                .name(debtPaymentRequestParams.getName())
+                .description(debtPaymentRequestParams.getDescription())
+                .paymentDate(debtPaymentRequestParams.getPaymentDate())
+                .amount(debtPaymentRequestParams.getAmount())
+                .pendingAmount(debtPaymentRequestParams.getPendingAmount())
+                .payed(debtPaymentRequestParams.getPayed())
                 .build();
     }
 

@@ -38,6 +38,8 @@ public class Debt {
     private BigDecimal pendingAmount;
     @Column(name = "termInMonths", nullable = false)
     private BigDecimal termInMonths;
+    @Column(name = "payed", nullable = false)
+    private Boolean payed;
     /* RELATIONSHIPS */
     @ManyToOne
     @JoinColumn(name = "userId")

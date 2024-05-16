@@ -40,7 +40,7 @@ public class AppConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String currentWorkingDir = System.getProperty("user.dir");
-        String uploadsDirPath = currentWorkingDir + "/src/main/java/com/debts/debtsappbackend/uploads/";
+        String uploadsDirPath = currentWorkingDir + "/uploads/";
         registry
                 .addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadsDirPath);

@@ -22,6 +22,4 @@ public class DebtPaymentRequestParams {
     private BigDecimal amount;
     private BigDecimal pendingAmount;
     private Boolean payed;
-
-    // Getters and setters...
 }

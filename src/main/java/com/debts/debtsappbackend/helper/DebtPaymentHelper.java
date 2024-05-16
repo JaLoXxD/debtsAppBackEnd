@@ -40,6 +40,7 @@ public class DebtPaymentHelper extends GenericHelper{
 
     public DebtPaymentRequest mapDebtPaymentRequest(DebtPaymentRequestParams debtPaymentRequestParams){
         return DebtPaymentRequest.builder()
+                .debtId(debtPaymentRequestParams.getDebtId())
                 .name(debtPaymentRequestParams.getName())
                 .description(debtPaymentRequestParams.getDescription())
                 .paymentDate(debtPaymentRequestParams.getPaymentDate())

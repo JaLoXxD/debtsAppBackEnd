@@ -26,6 +26,7 @@ public class DebtDto {
     private BigDecimal amount;
     private BigDecimal pendingAmount;
     private BigDecimal termInMonths;
+    private boolean payed;
     private UserDto user;
     private List<DebtPaymentDto> debtPayments;
 }

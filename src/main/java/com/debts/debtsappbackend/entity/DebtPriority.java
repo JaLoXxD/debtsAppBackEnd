@@ -12,7 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Setter
-//TODO: ADD TO STRING METHOD
 public class DebtPriority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

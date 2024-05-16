@@ -2,6 +2,7 @@ package com.debts.debtsappbackend.services;
 
 import com.debts.debtsappbackend.entity.Debt;
 import com.debts.debtsappbackend.entity.DebtPayment;
+import com.debts.debtsappbackend.entity.User;
 import com.debts.debtsappbackend.helper.DebtHelper;
 import com.debts.debtsappbackend.helper.DebtPaymentHelper;
 import com.debts.debtsappbackend.model.request.DebtPaymentRequest;
@@ -21,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -70,16 +73,37 @@ public class DebtPaymentService{
     public GenericResponse updateDebtPayment(DebtPaymentRequestParams requestParams, MultipartFile image, Long debtPaymentId, String token, List<String> errors) {
         try{
             DebtPaymentRequest request = debtPaymentHelper.mapDebtPaymentRequest(requestParams);
-            userService.checkIfUserExists(token, errors);
+            User currentUser = userService.checkIfUserExists(token, errors);
             DebtPayment currentPayment = _checkIfDebtPaymentExists(debtPaymentId, errors);
-            String imageName = image != null ? fileService.uploadFile(image, errors) : null;
-            updateDebtPendingAmountById(request.getDebtId(), request.getPendingAmount(), errors);
+            assert currentPayment != null;
+            String auxImgName = currentUser.getUsername() + "-" + currentPayment.getId();
+            if(currentPayment.getImage() != null) {
+                fileService.deleteFile(currentPayment.getImage(), errors);
+            }
+            String imageName = image != null ? fileService.uploadFile(image, auxImgName, errors) : null;
+            BigDecimal balanceAfterPay = request.getPendingAmount().subtract(request.getAmount());
+            BigDecimal balanceBeforePay = request.getPendingAmount();
+            log.info("BALANCE AFTER PAY {}", balanceAfterPay);
+            //IF THE PAYMENT AMOUNT IS EQUAL TO THE DEBT PENDING AMOUNT, DELETE ALL THE FUTURE DEBT PAYMENTS
+            Debt currentDebt = debtValidationService.checkIfDebtExists(currentPayment.getDebt().getId(), errors);
+            BigDecimal amountWithTwoDecimals = request.getAmount().setScale(2, RoundingMode.UNNECESSARY);
+            debtPaymentRepository.updateById(debtPaymentId, request.getName(), request.getDescription(), request.getPaymentDate(), request.getAmount(), balanceAfterPay, balanceBeforePay, imageName, request.getPayed());
+            if(amountWithTwoDecimals.compareTo(currentDebt.getPendingAmount()) == 0) {
+                _updateDebtPaymentsIfDebtAmountIsPaid(currentDebt, errors);
+            }
+            if(currentPayment.getBalanceBeforePay() == null) {
+                updateDebtPendingAmountById(request.getDebtId(), balanceAfterPay, errors);
+            } else {
+                balanceAfterPay = currentPayment.getBalanceAfterPay();
+                balanceBeforePay = currentPayment.getBalanceBeforePay();
+            }
+            //IF THE AMOUNT IS DIFFERENT FROM THE EXPECTED AMOUNT, UPDATE THE REMAINING DEBT PAYMENTS EXPECTED AMOUNT
+            if(request.getAmount().compareTo(currentPayment.getExpectedAmount()) != 0) {
+                _updateDebtPaymentsAfterUpdateDebtPayment(currentDebt, currentPayment, errors);
+            }
             if(!errors.isEmpty()){
                 return debtPaymentHelper.buildGenericResponse(translateService.getMessage("debt.payment.update.error"), errors);
             }
-            assert currentPayment != null;
-            BigDecimal balanceAfterPay = request.getPendingAmount().subtract(request.getAmount());
-            debtPaymentRepository.updateById(debtPaymentId, request.getName(), request.getDescription(), request.getPaymentDate(), request.getAmount(), balanceAfterPay, request.getPendingAmount(), imageName, request.getPayed());
             return debtPaymentHelper.buildGenericResponse(translateService.getMessage("debt.payment.update.success"), null);
         } catch(Exception e) {
             log.error("ERROR: ", e);
@@ -87,6 +111,54 @@ public class DebtPaymentService{
                 errors.add(e.getMessage());
             return debtPaymentHelper.buildGenericResponse(translateService.getMessage("debt.payment.update.error"), errors);
         }
+    }
+
+    //UPDATE THE DEBT PAYMENTS IF ALL THE DEBT AMOUNT IS PAID
+    private void _updateDebtPaymentsIfDebtAmountIsPaid(Debt currentDebt, List<String> errors) {
+        try {
+            debtPaymentRepository.deleteAllByDebtIdAndPayed(currentDebt.getId(), false);
+            debtRepository.updatePayedById(currentDebt.getId(), true);
+        } catch (Exception e) {
+            log.error("ERROR: ", e);
+            if (e.getMessage() != null)
+                errors.add(translateService.getMessage("debt.payment.update.expected.amount.error"));
+        }
+    }
+
+    //UPDATE THE REMAINING DEBT PAYMENTS EXPECTED AMOUNT IF A DEBT PAYMENT IS UPDATED WITH AN AMOUNT DIFFERENT FROM THE EXPECTED AMOUNT
+    private void _updateDebtPaymentsAfterUpdateDebtPayment(Debt currentDebt, DebtPayment currentPayment, List<String> errors) {
+        try {
+            MathContext mc = new MathContext(11, RoundingMode.DOWN);
+            List<DebtPayment> existingPayments = debtPaymentRepository.findAllByDebtIdAndPayed(currentDebt.getId(), true);
+            BigDecimal remainingMonths = currentDebt.getTermInMonths().subtract(BigDecimal.valueOf(existingPayments.size()));
+            BigDecimal remainingAmount = currentDebt.getPendingAmount();
+            BigDecimal monthlyAmount = remainingAmount.divide(remainingMonths, mc).setScale(2, RoundingMode.HALF_UP);
+            debtPaymentRepository.updateExpectedAmountByDebtId(currentDebt.getId(), monthlyAmount);
+            if(currentDebt.getPendingAmount().compareTo(monthlyAmount.multiply(remainingMonths)) < 0) {
+                BigDecimal leftOverBalance = monthlyAmount.multiply(remainingMonths).subtract(remainingAmount);
+                _setRemainingAmountToNextPayment(currentPayment, leftOverBalance, errors);
+            }
+        } catch (Exception e) {
+            log.error("ERROR: ", e);
+            if (e.getMessage() != null)
+                errors.add(translateService.getMessage("debt.payment.update.expected.amount.error"));
+        }
+    }
+
+    private void _setRemainingAmountToNextPayment(DebtPayment currentPayment, BigDecimal remainingAmount, List<String> errors) {
+        try {
+            Long debtId = currentPayment.getDebt().getId();
+            DebtPayment lastPayment = debtPaymentRepository.findFirstByDebtIdAndPayedOrderByCreatedAtDesc(debtId, false).orElse(null);
+            if(lastPayment != null) {
+                BigDecimal expectedAmount = lastPayment.getExpectedAmount().subtract(remainingAmount);
+                debtPaymentRepository.updateExpectedAmountByDebtPaymentId(lastPayment.getId(), expectedAmount);
+            }
+        } catch (Exception e) {
+            log.error("ERROR: ", e);
+            if (e.getMessage() != null)
+                errors.add(translateService.getMessage("debt.payment.update.expected.amount.error"));
+        }
+
     }
 
 

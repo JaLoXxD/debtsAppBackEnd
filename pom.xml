@@ -121,6 +121,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <jvmArguments>-Djava.io.tmpdir=C:/Users/Jorge/Documents/PROGRAMMING/PERSONAL PROJECTS/debtsAppBackEnd/src/main/resources/temp</jvmArguments>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

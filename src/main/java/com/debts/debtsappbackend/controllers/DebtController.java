@@ -123,7 +123,7 @@ public class DebtController {
     public ResponseEntity<GenericResponse> payDebt(
             @PathVariable("debtPaymentId") Long debtPaymentId,
             @ModelAttribute DebtPaymentRequestParams debtPaymentRequestParams,
-            @RequestPart("image") MultipartFile image,
+            @RequestPart(value = "image", required = false) MultipartFile image,
             @RequestHeader("Authorization") String token) {
         try{
             log.info("ENTER TO REST PAYMENT");

@@ -114,6 +114,7 @@ public class DebtHelper extends GenericHelper{
                 .amount(debt.getAmount())
                 .pendingAmount(debt.getPendingAmount())
                 .termInMonths(debt.getTermInMonths())
+                .payed(debt.getPayed())
                 .user(withUser ? userHelper.convertToDto(debt.getUser()) : null)
                 .debtPayments(debtPayments != null ? debtPayments.stream().map(debtPaymentHelper::convertDebtPaymentToDto).collect(Collectors.toList()) : null)
                 .build();
@@ -133,6 +134,7 @@ public class DebtHelper extends GenericHelper{
                 .amount(request.getAmount())
                 .pendingAmount(request.getAmount())
                 .termInMonths(request.getTermInMonths())
+                .payed(false)
                 .debtPayments(new ArrayList<>())
                 .user(user)
                 .build();

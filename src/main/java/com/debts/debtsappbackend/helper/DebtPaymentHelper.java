@@ -38,6 +38,21 @@ public class DebtPaymentHelper extends GenericHelper{
                 .build();
     }
 
+    public DebtPayment mapPayedDebtPayment(String name, LocalDateTime paymentDate, BigDecimal amount, BigDecimal expectedAmount, BigDecimal balanceAfterPay, BigDecimal balanceBeforePay, Debt debt){
+        return DebtPayment.builder()
+                .name(name)
+                .paymentDate(paymentDate)
+                .maxPaymentDate(paymentDate)
+                .createdAt(LocalDateTime.now())
+                .amount(amount)
+                .balanceAfterPay(balanceAfterPay)
+                .balanceBeforePay(balanceBeforePay)
+                .expectedAmount(expectedAmount)
+                .payed(true)
+                .debt(debt)
+                .build();
+    }
+
     public DebtPaymentRequest mapDebtPaymentRequest(DebtPaymentRequestParams debtPaymentRequestParams){
         return DebtPaymentRequest.builder()
                 .debtId(debtPaymentRequestParams.getDebtId())

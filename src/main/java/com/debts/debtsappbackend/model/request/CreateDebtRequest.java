@@ -31,4 +31,6 @@ public class CreateDebtRequest {
     private BigDecimal amount;
     @NotNull
     private BigDecimal termInMonths;
+    @NotNull
+    private Boolean payed;
 }

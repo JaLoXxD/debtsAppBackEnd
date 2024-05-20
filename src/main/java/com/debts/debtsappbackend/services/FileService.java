@@ -24,8 +24,14 @@ public class FileService {
         try {
             // Save the file to the server
             String currentWorkingDir = System.getProperty("user.dir");
-            Path path = Paths.get(currentWorkingDir + "\\uploads\\" + fileName);
+            Path path = Paths.get(currentWorkingDir + "/uploads/" + fileName);
             log.info("PATH: " + path);
+
+            // Create directory if it does not exist
+            if (!Files.exists(path.getParent())) {
+                Files.createDirectories(path.getParent());
+            }
+
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
             return fileName;
         } catch (IOException e) {

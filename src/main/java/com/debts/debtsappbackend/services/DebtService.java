@@ -29,8 +29,9 @@ public class DebtService {
     private final DebtCategoryService debtCategoryService;
     private final DebtPriorityService debtPriorityService;
     private final DebtValidationService debtValidationService;
+    private final TranslateService translateService;
 
-    public DebtService(DebtRepository debtRepository, DebtHelper debtHelper, UserService userService, DebtPaymentService debtPaymentService, DebtCategoryService debtCategoryService, DebtPriorityService debtPriorityService, DebtValidationService debtValidationService) {
+    public DebtService(DebtRepository debtRepository, DebtHelper debtHelper, UserService userService, DebtPaymentService debtPaymentService, DebtCategoryService debtCategoryService, DebtPriorityService debtPriorityService, DebtValidationService debtValidationService, TranslateService translateService) {
         this.debtRepository = debtRepository;
         this.debtHelper = debtHelper;
         this.userService = userService;
@@ -38,6 +39,7 @@ public class DebtService {
         this.debtCategoryService = debtCategoryService;
         this.debtPriorityService = debtPriorityService;
         this.debtValidationService = debtValidationService;
+        this.translateService = translateService;
     }
 
     public DebtResponse createDebt(CreateDebtRequest request, String token, List<String> errors) {
@@ -71,9 +73,17 @@ public class DebtService {
 
     private void _createDebtPayments(CreateDebtRequest request, Debt newDebt) {
         BigDecimal monthlyAmount = newDebt.getAmount().divide(newDebt.getTermInMonths(), 2, RoundingMode.HALF_UP);
+        BigDecimal totalPayedAmount = BigDecimal.valueOf(0);
         for (int i = 0; i < request.getTermInMonths().intValue(); i++) {
-            String name = request.getName() + " - Payment " + (i + 1);
-            debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, newDebt);
+            String name = request.getName() + " - " + translateService.getMessage("debt.payment") + " " + (i + 1);
+            if(request.getPayed()) {
+                MathContext mc = new MathContext(11, RoundingMode.DOWN);
+                BigDecimal balanceAfterPay = totalPayedAmount.add(monthlyAmount, mc);
+                totalPayedAmount = balanceAfterPay;
+                debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, totalPayedAmount.subtract(monthlyAmount, mc), balanceAfterPay, newDebt, true);
+            } else {
+                debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, null, null, newDebt, false);
+            }
         }
     }
 
@@ -87,7 +97,7 @@ public class DebtService {
         }
     }
 
-    public DebtResponse updateDebt(CreateDebtRequest request, String token, List<String> errors) {
+    public DebtResponse updateDebt(CreateDebtRequest request, Long debtId, String token, List<String> errors) {
         try {
             log.info("UPDATE DEBT REQUEST: " + request);
             User user = userService.checkIfUserExists(token, errors);
@@ -99,16 +109,19 @@ public class DebtService {
                 log.info("DEBT CATEGORY: " + debtCategory);
                 log.info("DEBT PRIORITY: " + debtPriority);
             }
+            Debt debtBeforeUpd = debtValidationService.checkIfDebtExists(debtId, errors);
             log.info("ERRORS: " + errors);
             if (!errors.isEmpty()) {
                 return debtHelper.buildDebtResponse(null, null, true, errors);
             }
             Debt debt = debtHelper.mapDebtFromRequest(request, user, debtCategory, debtPriority);
+            debt.setId(debtId); //set the id of the debt for avoiding creating a new one
+            debt.setPendingAmount(debtBeforeUpd.getPendingAmount());
             log.info("DEBT: " + debt);
             Debt newDebt = debtRepository.save(debt);
             //delete all payments that are unpaid
             debtPaymentService.deleteAllDebtPaymentsByDebtIdAndPayed(debt.getId(), false);
-            _updateDebtPaymentsAfterUpdateDebt(request, newDebt, debtPaymentService.getAllPayedDebtPaymentsByDebtId(debt.getId(), true));
+            _updateDebtPaymentsAfterUpdateDebt(request, newDebt, debtPaymentService.getAllPayedDebtPaymentsByDebtId(debt.getId(), true), errors);
             return debtHelper.buildDebtResponse(newDebt, null, true, errors);
         } catch (Exception e) {
             log.error("ERROR: " + e);
@@ -118,18 +131,29 @@ public class DebtService {
         }
     }
 
-    private void _updateDebtPaymentsAfterUpdateDebt(CreateDebtRequest request, Debt newDebt, List<DebtPayment> existingPayments) {
-        MathContext mc = new MathContext(3, RoundingMode.DOWN);
+    private void _updateDebtPaymentsAfterUpdateDebt(CreateDebtRequest request, Debt newDebt, List<DebtPayment> existingPayments, List<String> errors) {
+        MathContext mc = new MathContext(11, RoundingMode.DOWN);
         //GET THE TOTAL PAYED AMOUNT
-        double payedAmount = existingPayments.stream()
-                .mapToDouble(payment ->  payment.getAmount().doubleValue())
-                .sum();
-        BigDecimal remainingMonths = request.getTermInMonths().subtract(BigDecimal.valueOf(existingPayments.size()));
-        BigDecimal remainingAmount = request.getAmount().subtract(BigDecimal.valueOf(payedAmount));
-        BigDecimal monthlyAmount = remainingAmount.divide(remainingMonths, mc);
-        for (int i = existingPayments.size() - 1; i < request.getTermInMonths().intValue(); i++) {
-            String name = request.getName() + " - Payment " + (i + 1);
-            debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), monthlyAmount, newDebt);
+        //TODO: ADD PAYED AMOUNT FIELD TO DEBT ENTITY
+        BigDecimal remainingMonths = request.getTermInMonths().compareTo(BigDecimal.valueOf(existingPayments.size())) != 0 ? request.getTermInMonths().subtract(BigDecimal.valueOf(existingPayments.size())) : request.getTermInMonths();
+        BigDecimal remainingAmount = newDebt.getPendingAmount();
+        BigDecimal monthlyAmount = remainingAmount.divide(remainingMonths, mc).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalPayedAmount = newDebt.getAmount().subtract(newDebt.getPendingAmount());
+        BigDecimal expectedAmountAfterAllPayments = monthlyAmount.multiply(remainingMonths, mc).add(totalPayedAmount, mc).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remainingAmountOfAllDebts = newDebt.getAmount().subtract(expectedAmountAfterAllPayments).setScale(2, RoundingMode.HALF_UP);
+        log.info("REMAINING AMOUNT OF ALL DEBTS: " + remainingAmountOfAllDebts);
+        int startPaymentIndex = request.getTermInMonths().compareTo(BigDecimal.valueOf(existingPayments.size())) != 0 ? existingPayments.size() : 0;
+        for (int i = startPaymentIndex; i < request.getTermInMonths().intValue(); i++) {
+            String name = request.getName() + " - " + translateService.getMessage("debt.payment") + " " + (i + 1);
+            BigDecimal amount = (i == existingPayments.size() ? monthlyAmount.add(remainingAmountOfAllDebts, mc) : monthlyAmount).setScale(2, RoundingMode.HALF_UP);
+            if(request.getPayed()) {
+                BigDecimal balanceBeforePay = totalPayedAmount;
+                BigDecimal balanceAfterPay = totalPayedAmount.add(amount, mc);
+                totalPayedAmount = balanceAfterPay;
+                debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), amount, balanceBeforePay, balanceAfterPay, newDebt, true);
+            } else {
+                debtPaymentService.createDebtPayment(name, request.getStartDate().plusMonths(i + 1), amount, null, null, newDebt, false);
+            }
         }
     }
 

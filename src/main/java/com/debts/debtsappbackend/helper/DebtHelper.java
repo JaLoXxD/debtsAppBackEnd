@@ -134,7 +134,7 @@ public class DebtHelper extends GenericHelper{
                 .amount(request.getAmount())
                 .pendingAmount(request.getAmount())
                 .termInMonths(request.getTermInMonths())
-                .payed(false)
+                .payed(request.getPayed())
                 .debtPayments(new ArrayList<>())
                 .user(user)
                 .build();

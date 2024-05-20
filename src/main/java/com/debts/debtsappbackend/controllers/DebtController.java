@@ -55,21 +55,21 @@ public class DebtController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.createDebt(createDebtRequest, token, List.of(e.getMessage())));
         }
     }
-    @PutMapping
-    public ResponseEntity<DebtResponse> updateDebt(@RequestBody CreateDebtRequest createDebtRequest, BindingResult bindingResult, @RequestHeader("Authorization") String token) {
+    @PutMapping("/{debtId}")
+    public ResponseEntity<DebtResponse> updateDebt(@RequestBody CreateDebtRequest createDebtRequest, BindingResult bindingResult, @RequestHeader("Authorization") String token, @PathVariable("debtId") Long debtId) {
         try{
             log.info("ENTER TO REST UPDATE DEBT");
             validatorService.validate("debt", createDebtRequest, bindingResult);
             if(bindingResult.hasErrors()){
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.updateDebt(createDebtRequest, token, validatorService.getErrors(bindingResult)));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(debtService.updateDebt(createDebtRequest, debtId, token, validatorService.getErrors(bindingResult)));
             }
-            DebtResponse debtResponse = debtService.createDebt(createDebtRequest, token, new ArrayList<>());
+            DebtResponse debtResponse = debtService.updateDebt(createDebtRequest, debtId, token, new ArrayList<>());
             HttpStatus status = debtResponse.getErrors() == null ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
             return ResponseEntity.status(status).body(debtResponse);
 
         } catch(Exception e) {
             log.error("ERROR {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.updateDebt(createDebtRequest, token, List.of(e.getMessage())));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(debtService.updateDebt(createDebtRequest, debtId, token, List.of(e.getMessage())));
         }
     }
 

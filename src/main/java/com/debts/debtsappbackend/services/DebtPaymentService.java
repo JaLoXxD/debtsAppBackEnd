@@ -152,12 +152,11 @@ public class DebtPaymentService{
 
     private void _setRemainingAmountToNextPayment(Long debtId, BigDecimal remainingAmount, List<String> errors) {
         try {
-            //TODO: CHECK FLOW OF THIS METHOD ADD OR SUBSTRACT????
             log.info("REMAINING AMOUNT {}", remainingAmount);
-            DebtPayment lastPayment = debtPaymentRepository.findFirstByDebtIdAndPayedOrderByCreatedAtDesc(debtId, false).orElse(null);
-            if(lastPayment != null) {
-                BigDecimal expectedAmount = lastPayment.getExpectedAmount().subtract(remainingAmount).setScale(2, RoundingMode.HALF_UP);
-                debtPaymentRepository.updateExpectedAmountByDebtPaymentId(lastPayment.getId(), expectedAmount);
+            DebtPayment nextPayment = debtPaymentRepository.findFirstByDebtIdAndPayedOrderByCreatedAtAsc(debtId, false).orElse(null);
+            if(nextPayment != null) {
+                BigDecimal expectedAmount = nextPayment.getExpectedAmount().subtract(remainingAmount).setScale(2, RoundingMode.HALF_UP);
+                debtPaymentRepository.updateExpectedAmountByDebtPaymentId(nextPayment.getId(), expectedAmount);
             }
         } catch (Exception e) {
             log.error("ERROR: ", e);

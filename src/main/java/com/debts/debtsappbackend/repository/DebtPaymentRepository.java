@@ -19,7 +19,7 @@ public interface DebtPaymentRepository extends JpaRepository<DebtPayment, Long> 
     Page<DebtPayment> findAllByDebtId(Long debtId, Pageable pageable);
     @Query("SELECT D FROM DebtPayment D WHERE D.debt.id = :debtId AND (D.name LIKE %:filter% OR D.description LIKE %:filter% OR CAST(D.amount AS string) LIKE %:filter% OR CAST(D.balanceAfterPay AS string) LIKE %:filter% OR CAST(D.balanceBeforePay AS string) LIKE %:filter% OR FUNCTION('DATE_FORMAT', D.paymentDate, '%Y-%m-%d %T') LIKE %:filter% OR FUNCTION('DATE_FORMAT', D.maxPaymentDate, '%Y-%m-%d %T') LIKE %:filter%) ORDER BY D.createdAt DESC")
     Page<DebtPayment> findAllByDebtIdAndFilter(Long debtId, String filter, Pageable pageable);
-    Optional<DebtPayment> findFirstByDebtIdAndPayedOrderByCreatedAtDesc(Long debtId, Boolean payed);
+    Optional<DebtPayment> findFirstByDebtIdAndPayedOrderByCreatedAtAsc(Long debtId, Boolean payed);
     Optional<DebtPayment> findById(Long debtPaymentId);
     void deleteAllByDebtId(Long debtId);
     void deleteAllByDebtIdAndPayed(Long debtId, Boolean payed);
